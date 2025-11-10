@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pekerjaan Harian v2.1</title>
+  <title>Pekerjaan Harian v2.2</title> <!-- Judul diubah -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -297,6 +297,7 @@
   <!-- ======================== -->
   <script>
     // --- PENTING! PASTE URL ANDA DI SINI ---
+    // GANTI URL INI DENGAN URL DEPLOYMENT ANDA
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzd_xK7lzSSvUCdimLMDbGA_xaObhhAJP4LVXy0AN94vdJUNuKXm5KIAKHZecqck9q3Pw/exec'; 
     // ----------------------------------------
 
@@ -326,7 +327,7 @@
       },
       tasksForApproval: [], 
       userTaskResults: {},
-      adminUserStats: {} // <-- DITAMBAHKAN
+      adminUserStats: {}
     };
     
     let notificationTimer = null;
@@ -502,7 +503,8 @@
         const rows = tasksInGroup.map(task => {
           const currentHasil = state.userTaskResults[task.taskId] || task.hasil || '';
           const isPendingApproval = task.status === 'Pending Approval';
-          
+          const isRejected = task.status === 'Rejected'; // <-- CEK BARU
+
           let deskripsiTugas = task.description;
           if (taskType === "Packing" && task.description.startsWith("Packing SKU: ")) {
             deskripsiTugas = task.description.replace("Packing SKU: ", "");
@@ -511,8 +513,34 @@
             deskripsiTugas = task.description.replace("Retur Jenis: ", "");
           }
 
+          // --- TAMPILKAN STATUS DITOLAK ---
+          let statusHtml;
+          if (isPendingApproval) {
+            statusHtml = `<span class="text-sm font-medium text-yellow-600 bg-yellow-100 px-3 py-1.5 rounded-full">Menunggu ACC</span>`;
+          } else if (isRejected) {
+             statusHtml = `
+                <button 
+                  data-task-id="${task.taskId}"
+                  data-target-qty="${task.quantity}"
+                  class="konfirmasi-tugas-btn bg-blue-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-blue-700 transition duration-200 text-sm">
+                  Kirim Ulang
+                </button>
+                <span class="text-xs text-red-600 block mt-1 font-medium">Ditolak</span>
+              `;
+          } else {
+             statusHtml = `
+                <button 
+                  data-task-id="${task.taskId}"
+                  data-target-qty="${task.quantity}"
+                  class="konfirmasi-tugas-btn bg-emerald-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-emerald-700 transition duration-200 text-sm">
+                  Konfirmasi
+                </button>
+             `;
+          }
+          // --- AKHIR PERUBAHAN STATUS ---
+
           return `
-            <tr class="hover:bg-gray-50">
+            <tr class="hover:bg-gray-50 ${isRejected ? 'bg-red-50' : ''}"> <!-- Sorot baris ditolak -->
               <td class="px-4 py-3 text-sm text-gray-700 font-medium">${deskripsiTugas}</td>
               <td class="px-4 py-3 text-sm text-gray-700 text-center">${task.quantity}</td>
               <td class="px-4 py-3">
@@ -527,15 +555,7 @@
                 >
               </td>
               <td class="px-4 py-3 text-center">
-                ${isPendingApproval ? 
-                  `<span class="text-sm font-medium text-yellow-600 bg-yellow-100 px-3 py-1.5 rounded-full">Menunggu ACC</span>` : 
-                  `<button 
-                    data-task-id="${task.taskId}"
-                    data-target-qty="${task.quantity}"
-                    class="konfirmasi-tugas-btn bg-emerald-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-emerald-700 transition duration-200 text-sm">
-                    Konfirmasi
-                  </button>`
-                }
+                ${statusHtml} <!-- Gunakan HTML status baru -->
               </td>
             </tr>
           `;
@@ -583,29 +603,30 @@
         pending: 0,
         pendingApproval: 0, 
         completed: 0,
+        rejected: 0, // <-- STATS BARU
         total: data.length,
         totalCompletedQuantity: 0, 
         byType: {}
       };
       
-      let userStatsData = {}; // <-- Ganti nama dari stats.byUser
+      let userStatsData = {}; 
 
       data.forEach(row => {
         const status = row[6];
         const user = row[1];
         const type = row[3];
-        const description = row[4]; // <-- Ambil Deskripsi
-        const targetQty = parseInt(row[5] || 0, 10); // <-- Ambil Target
-        const hasilQty = parseInt(row[8] || 0, 10); // <-- Ambil Hasil
+        const description = row[4]; 
+        const targetQty = parseInt(row[5] || 0, 10); 
+        const hasilQty = parseInt(row[8] || 0, 10); 
 
         if (status === 'Pending') stats.pending++;
         if (status === 'Pending Approval') stats.pendingApproval++;
+        if (status === 'Rejected') stats.rejected++; // <-- HITUNG STATS BARU
         if (status === 'Completed') {
           stats.completed++;
           stats.totalCompletedQuantity += hasilQty;
         }
         
-        // --- LOGIKA BARU UNTUK userStatsData ---
         if (!userStatsData[user]) {
           userStatsData[user] = { taskCount: 0, totalQuantity: 0, tasks: [] };
         }
@@ -615,7 +636,6 @@
           userStatsData[user].totalQuantity += hasilQty;
         }
         
-        // Tambahkan detail tugas ke array tasks
         userStatsData[user].tasks.push({
           description: description,
           type: type,
@@ -623,15 +643,12 @@
           hasil: hasilQty,
           status: status
         });
-        // --- AKHIR LOGIKA BARU ---
         
         stats.byType[type] = (stats.byType[type] || 0) + 1;
       });
       
-      // Simpan data user yang sudah diproses ke state global
       state.adminUserStats = userStatsData;
 
-      // --- PERUBAHAN RENDER: Tampilkan taskCount dan totalQuantity ---
       const userStatsHtml = Object.keys(userStatsData).sort().map(user => {
         const userData = userStatsData[user];
         return `
@@ -664,7 +681,7 @@
           <h2 class="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h2>
           
           <!-- Stats Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6"> <!-- DIUBAH JADI 5 KOLOM -->
             <div class="bg-white p-5 rounded-xl shadow-lg border">
               <h4 class="text-sm font-medium text-blue-700">Total Tugas</h4>
               <p class="text-3xl font-bold text-blue-900">${stats.total}</p>
@@ -677,7 +694,11 @@
               <h4 class="text-sm font-medium text-orange-700">Menunggu ACC</h4>
               <p class="text-3xl font-bold text-orange-900">${stats.pendingApproval}</p>
             </div>
-            <!-- --- PERUBAHAN CARD: Menampilkan total items --- -->
+             <!-- KARTU BARU -->
+            <div class="bg-white p-5 rounded-xl shadow-lg border">
+              <h4 class="text-sm font-medium text-red-700">Ditolak</h4>
+              <p class="text-3xl font-bold text-red-900">${stats.rejected}</p>
+            </div>
             <div class="bg-white p-5 rounded-xl shadow-lg border">
               <h4 class="text-sm font-medium text-emerald-700">Tugas Selesai</h4>
               <p class="text-3xl font-bold text-emerald-900">${stats.completed}</p>
@@ -689,7 +710,7 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="bg-white p-5 rounded-xl shadow-lg border">
               <h3 class="font-semibold text-gray-800 mb-3">Tugas per User</h3>
-              <ul class="divide-y divide-gray-200">${userStatsHtml}</ul> <!-- <-- Gunakan HTML baru -->
+              <ul class="divide-y divide-gray-200">${userStatsHtml}</ul>
             </div>
             <div class="bg-white p-5 rounded-xl shadow-lg border">
               <h3 class="font-semibold text-gray-800 mb-3">Tugas per Tipe</h3>
@@ -870,6 +891,7 @@
     }
 
     // --- Render View Admin (PERSETUJUAN) ---
+    // *** PERUBAHAN BESAR DI SINI ***
     function renderTaskApprovalView(tasks) {
       let rows = '';
       if (tasks.length === 0) {
@@ -896,12 +918,26 @@
                 <span class="font-bold">${taskType}</span>: ${taskDesc}
               </td>
               <td class="px-4 py-3 text-sm text-gray-700 text-center">${target}</td>
-              <td class="px-4 py-3 text-sm text-blue-700 font-bold text-center">${hasil}</td>
-              <td class="px-4 py-3 text-center">
+              <td class="px-4 py-3"> <!-- Kolom Hasil Diubah -->
+                <input 
+                  type="number" 
+                  value="${hasil}"
+                  data-task-id="${taskId}"
+                  class="approval-hasil-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                  placeholder="0"
+                  min="0"
+                >
+              </td>
+              <td class="px-4 py-3 text-center space-x-2 whitespace-nowrap"> <!-- Kolom Aksi Diubah -->
                 <button 
                   data-task-id="${taskId}"
                   class="approve-task-btn bg-emerald-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-emerald-700 transition duration-200 text-sm">
                   Setujui
+                </button>
+                <button 
+                  data-task-id="${taskId}"
+                  class="reject-task-btn bg-red-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-red-700 transition duration-200 text-sm">
+                  Tolak
                 </button>
               </td>
             </tr>
@@ -918,9 +954,9 @@
                 <tr>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Karyawan</th>
                   <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Tugas</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Target</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hasil</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Aksi</th>
+                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Target</th>
+                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Hasil</th>
+                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Aksi</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
@@ -1083,11 +1119,9 @@
       `;
     }
     
-    // --- PERUBAHAN BESAR: Render Laporan (Hasil Pekerjaan) ---
+    // --- Render Laporan (Hasil Pekerjaan) ---
     function renderLaporanView(items) {
-      // Kelompokkan berdasarkan Tipe (Jenis)
       const tasksByType = items.reduce((acc, task) => {
-        // Kita asumsikan 'task.type' berisi Jenis (cth: Packing, Retur)
         const type = task.type || 'Lainnya'; 
         if (!acc[type]) {
           acc[type] = [];
@@ -1104,25 +1138,18 @@
           </div>
         `;
       } else {
-        // Buat satu kartu untuk setiap jenis tugas
         content = Object.keys(tasksByType).sort().map(taskType => {
           const tasksInGroup = tasksByType[taskType];
-          // Kita asumsikan 'task.hasil' berisi jumlah/quantity
           const totalJumlah = tasksInGroup.reduce((sum, task) => sum + (parseInt(task.hasil, 10) || 0), 0); 
           
           const taskRows = tasksInGroup.map(item => {
-             // Asumsi 'taskName' adalah deskripsi, dan 'hasil' adalah jumlah
-             
-             // --- PERUBAHAN: Membersihkan deskripsi ---
              let deskripsi = item.taskName || 'Tidak ada deskripsi';
              if (item.type === 'Packing' && deskripsi.startsWith('Packing SKU: ')) {
                deskripsi = deskripsi.replace('Packing SKU: ', '');
              } else if (item.type === 'Retur' && deskripsi.startsWith('Retur Jenis: ')) {
                deskripsi = deskripsi.replace('Retur Jenis: ', '');
              }
-             // --- AKHIR PERUBAHAN ---
-             
-             const jumlah = item.hasil || 0; // 'jumlah' sudah benar mengambil dari 'hasil'
+             const jumlah = item.hasil || 0; 
              
              return `
               <tr class="hover:bg-gray-50 border-b last:border-b-0">
@@ -1134,15 +1161,13 @@
 
           return `
             <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              <!-- Header Kartu -->
               <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
                 <h3 class="text-xl font-bold text-gray-800">${taskType}</h3>
                 <span class="text-sm font-semibold text-gray-600 bg-gray-200 px-3 py-1 rounded-full">Total: ${totalJumlah}</span>
               </div>
-              <!-- Tabel di dalam kartu -->
               <div class="overflow-x-auto">
                 <table class="min-w-full">
-                  <thead class="bg-white"> <!-- Header di dalam, lebih ringan -->
+                  <thead class="bg-white">
                     <tr>
                       <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/4">Tugas / Deskripsi</th>
                       <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Jumlah</th>
@@ -1155,40 +1180,35 @@
               </div>
             </div>
           `;
-        }).join(''); // Tidak perlu <div class="h-6"></div>, ganti dengan space-y
+        }).join('');
       }
 
       return `
-        <div class="max-w-4xl mx-auto"> <!-- Batasi lebar agar lebih mudah dibaca -->
+        <div class="max-w-4xl mx-auto">
           <h2 class="text-3xl font-bold text-gray-900 mb-2">Laporan Pekerjaan Selesai</h2>
           <p class="text-gray-600 mb-6">Laporan ini mencatat semua tugas (Harian & Mandiri) yang telah disetujui oleh Admin.</p>
-          <div class="space-y-6"> <!-- Memberi jarak antar kartu -->
+          <div class="space-y-6">
             ${content}
           </div>
         </div>
       `;
     }
-    // --- AKHIR PERUBAHAN ---
 
 
     // --- Fungsi Aksi & Jaringan (Networking) ---
     
     function setState(newState) {
-      // Hapus view yang lama agar view baru di-render ulang
-      // Ini penting jika data berubah (misal: tambah baris)
       if (newState.currentTaskView && newState.currentTaskView === state.currentTaskView) {
          const oldView = getEl(`view-${state.currentTaskView}`);
          if (oldView) oldView.remove();
       }
       
-      // Hapus view 'packing', 'retur', dll saat menambah baris
       if (newState.tasks) {
          Object.keys(newState.tasks).forEach(taskType => {
            const oldView = getEl(`view-${taskType}`);
            if (oldView) oldView.remove();
          });
       }
-      // Hapus view 'assignTask' saat ada perubahan state
       if (newState.assignTaskState) {
          const oldView = getEl('view-assignTask');
          if (oldView) oldView.remove();
@@ -1206,7 +1226,7 @@
       const notifMsg = getEl('app-notification-message');
       
       notifMsg.textContent = message;
-      notif.className = 'fixed top-24 right-8 z-[100] px-6 py-4 rounded-lg shadow-xl transition-all duration-300 max-w-sm'; // Posisi di bawah header baru
+      notif.className = 'fixed top-24 right-8 z-[100] px-6 py-4 rounded-lg shadow-xl transition-all duration-300 max-w-sm'; 
       
       if (isError) {
         notif.classList.add('bg-red-500', 'text-white');
@@ -1232,7 +1252,7 @@
     function setupPasswordToggle(buttonId, inputId) {
       const button = getEl(buttonId);
       const input = getEl(inputId);
-      if (!button || !input) return; // Guard clause
+      if (!button || !input) return; 
       const eyeOpen = button.querySelector('.eye-icon-open');
       const eyeClosed = button.querySelector('.eye-icon-closed');
 
@@ -1280,12 +1300,10 @@
           
           localStorage.setItem('dailyTaskUser', JSON.stringify({ username, password }));
 
-          // --- PERUBAHAN: Cek HASH untuk Tombol Kembali ---
           let defaultView = role === 'admin' ? 'adminDashboard' : 'userDashboard';
           const hashView = window.location.hash.substring(1);
           
           if (hashView) {
-             // Pastikan hashView valid untuk role ini
              const validUserViews = ['userDashboard', 'packing', 'retur', 'inbound', 'perapian', 'urgent', 'laporan'];
              const validAdminViews = ['adminDashboard', 'assignTask', 'taskApproval'];
              
@@ -1294,23 +1312,21 @@
              {
                defaultView = hashView;
                
-               // Jika view-nya adalah sub-menu, buka dropdown
                if (validUserViews.includes(hashView) && hashView !== 'userDashboard' && hashView !== 'laporan') {
-                   setTimeout(() => { // Beri waktu untuk render
+                   setTimeout(() => { 
                      document.querySelectorAll('#submenu-tugas-mandiri').forEach(submenu => submenu.classList.remove('hidden'));
                      document.querySelectorAll('#arrow-tugas-mandiri').forEach(arrow => arrow.classList.add('rotate-180'));
                    }, 100);
                }
              }
           }
-          // --- AKHIR PERUBAHAN HASH ---
 
           if (role === 'admin') {
             setState({
               userUsername: username,
               userRole: 'admin',
               currentView: 'app',
-              currentTaskView: defaultView, // Diubah dari 'adminDashboard'
+              currentTaskView: defaultView,
               isLoading: false,
             });
             fetchAdminData();
@@ -1320,7 +1336,7 @@
               userRole: 'user',
               completedTasks: result.data.completedTasks.map(t => ({...t, completedAt: new Date(t.completedAt)})),
               currentView: 'app',
-              currentTaskView: defaultView, // Diubah dari 'userDashboard'
+              currentTaskView: defaultView,
               isLoading: false,
             });
             fetchUserTasks();
@@ -1339,17 +1355,12 @@
     function handleLogout() {
       localStorage.removeItem('dailyTaskUser');
       
-      // --- PERBAIKAN: Tambahkan try...catch untuk 'pushState' ---
-      // Perintah ini gagal di lingkungan preview 'blob:', jadi kita tangkap error-nya
       try {
-        // Hapus hash dari URL
         history.pushState(null, '', window.location.pathname);
       } catch (e) {
         console.warn("Gagal membersihkan URL (pushState error):", e.message);
-        // Fallback: Coba bersihkan hash saja jika pushState gagal
         window.location.hash = '';
       }
-      // --- AKHIR PERBAIKAN ---
       
       getEl('login-username').value = '';
       getEl('login-password').value = '';
@@ -1405,7 +1416,6 @@
           partialState.userList = usersResult.users;
         }
         
-        // Hapus cache view agar di-render ulang
         const oldDashView = getEl('view-adminDashboard');
         if(oldDashView) oldDashView.remove();
         const oldAssignView = getEl('view-assignTask');
@@ -1427,7 +1437,6 @@
         const result = await response.json();
         
         if (result.status === 'success') {
-          // Hapus cache view agar di-render ulang
           const oldView = getEl('view-userDashboard');
           if(oldView) oldView.remove();
           setState({ assignedTasks: result.tasks, isLoading: false });
@@ -1448,7 +1457,6 @@
         const result = await response.json();
         
         if (result.status === 'success') {
-          // Hapus cache view agar di-render ulang
           const oldView = getEl('view-taskApproval');
           if(oldView) oldView.remove();
           setState({ tasksForApproval: result.data, isLoading: false });
@@ -1467,34 +1475,27 @@
       const button = event.target.closest('.sidebar-button');
       if (button) {
         const view = button.dataset.view;
-        navigateToView(view); // <-- Sekarang memanggil fungsi navigasi baru
+        navigateToView(view); 
       }
     }
 
     // --- FUNGSI NAVIGASI BARU (REFAKTOR) ---
     function navigateToView(view) {
       if (!view) return; 
-
-      // Cek jika view-nya sama, tidak perlu navigasi
-      // if (view === state.currentTaskView) return; 
-      // Kita tetap izinkan klik view yang sama untuk refresh data
       
       closeMobileSidebar();
-      hideUserDetailsModal(); // Tutup modal (jika terbuka) saat navigasi
+      hideUserDetailsModal(); 
 
-      // --- PERUBAHAN HISTORY API ---
       if (view !== state.currentTaskView) {
          const newState = { view: view };
-         const url = `#${view}`; // cth: index.html#packing
+         const url = `#${view}`; 
          try {
            history.pushState(newState, '', url);
          } catch (e) {
            console.error("History pushState failed", e);
          }
       }
-      // ---------------------------
-
-      // --- Logika Fetch Data & Set State ---
+      
       if (view === 'assignTask') {
         if (state.userList.length === 0) {
           fetchAdminData();
@@ -1512,20 +1513,18 @@
         });
       } 
       else if (view === 'adminDashboard') {
-        fetchAdminData(); // Fetch data dan setState akan di-handle di sana
+        fetchAdminData(); 
         setState({ currentTaskView: view });
       }
       else if (view === 'taskApproval') {
-        fetchTasksForApproval(); // Fetch data dan setState akan di-handle di sana
+        fetchTasksForApproval(); 
         setState({ currentTaskView: view });
       }
-      // --- USER VIEWS ---
       else if (view === 'userDashboard') {
-        fetchUserTasks(); // Fetch data dan setState akan di-handle di sana
+        fetchUserTasks(); 
         setState({ currentTaskView: view });
       }
       else if (['packing', 'retur', 'inbound', 'perapian', 'urgent'].includes(view)) {
-         // Reset data saat view di-klik
          setState({ 
            currentTaskView: view,
            tasks: {
@@ -1535,7 +1534,6 @@
          });
       }
       else {
-        // Untuk view 'laporan', dll.
         setState({ currentTaskView: view });
       }
     }
@@ -1547,17 +1545,14 @@
       const button = target.closest('button');
       if (!button) return; 
 
-      // Tombol "Kirim untuk Persetujuan" (Tugas Mandiri)
       if (button.classList.contains('submit-mandiri-button')) {
         const taskType = button.dataset.taskType;
         handleSubmitMandiriTasks(taskType);
       }
-      // Tombol Tambah Baris (Tugas Mandiri)
       if (button.classList.contains('add-row-button')) {
         const taskType = button.dataset.taskType;
         handleAddRow(taskType);
       }
-      // Tombol Selesai di Dashboard User (Tabel Baru)
       if (button.classList.contains('konfirmasi-tugas-btn')) {
         const taskId = button.dataset.taskId;
         const targetQty = parseInt(button.dataset.targetQty, 10);
@@ -1571,7 +1566,6 @@
         handleSubmitTaskForApproval(taskId, hasilQty, targetQty);
       }
       
-      // Tombol di form "Beri Tugas"
       const blockId = button.dataset.blockId;
       const rowId = button.dataset.rowId;
 
@@ -1643,26 +1637,40 @@
         setState({ assignTaskState: { taskBlocks: newBlocks } });
       }
 
+      // *** PERUBAHAN DI SINI ***
       // Tombol Admin menyetujui tugas
       if (button.classList.contains('approve-task-btn')) {
         const taskId = button.dataset.taskId;
-        handleApproveTask(taskId);
+        // Ambil nilai 'hasil' dari input terdekat
+        const inputEl = document.querySelector(`.approval-hasil-input[data-task-id="${taskId}"]`);
+        let hasilQty = null;
+        if (inputEl) {
+          hasilQty = parseInt(inputEl.value, 10);
+        }
+        if (isNaN(hasilQty) || hasilQty < 0) {
+          showNotification("Nilai 'Hasil' tidak valid.", true);
+          return; // Hentikan jika 'hasil' tidak valid
+        }
+        handleApproveTask(taskId, hasilQty); // Kirim 'hasil' yang sudah diedit
       }
+      // Tombol Admin menolak tugas (BARU)
+      else if (button.classList.contains('reject-task-btn')) {
+        const taskId = button.dataset.taskId;
+        handleRejectTask(taskId);
+      }
+      // *** AKHIR PERUBAHAN ***
       
-      // --- DITAMBAHKAN ---
       // Tombol Admin melihat detail tugas user
       if (button.classList.contains('user-details-btn')) {
         const username = button.dataset.username;
         showUserDetailsModal(username);
       }
-      // --- AKHIR TAMBAHAN ---
     }
     
     // --- Logika Input ---
     function handleViewContainerInput(event) {
       const target = event.target;
       
-      // Input Tugas Mandiri (Packing, Retur, dll)
       if (target.classList.contains('task-input')) {
         const { taskType, index, field } = target.dataset;
         const value = (target.type === 'number' && target.value !== '') ? Number(target.value) : target.value;
@@ -1672,7 +1680,6 @@
             state.tasks[taskType] = newItems; 
         }
       }
-      // Select Tugas Mandiri (Retur)
       if (target.classList.contains('task-select')) {
          const { taskType, index, field } = target.dataset;
          const newItems = [...state.tasks[taskType]];
@@ -1682,7 +1689,6 @@
          }
       }
       
-      // Input di form "Beri Tugas" (Admin)
       const blockId = target.dataset.blockId;
       const rowId = target.dataset.rowId;
       const field = target.dataset.field;
@@ -1702,7 +1708,6 @@
         state.assignTaskState.taskBlocks = newBlocks;
       }
 
-      // Input di tabel "Hasil" (User Dashboard)
       if (target.classList.contains('task-hasil-input')) {
         const taskId = target.dataset.taskId;
         const value = target.value;
@@ -1714,7 +1719,6 @@
     function handleViewContainerChange(event) {
       const target = event.target;
       
-      // Checkbox Karyawan di "Beri Tugas"
       if (target.classList.contains('assign-user-checkbox')) {
         const user = target.value;
         const isChecked = target.checked;
@@ -1730,7 +1734,6 @@
         return; 
       }
       
-      // Select di form "Beri Tugas" (Jenis Retur - Admin)
       const blockId = target.dataset.blockId;
       const rowId = target.dataset.rowId;
       const field = target.dataset.field;
@@ -1756,7 +1759,6 @@
       event.preventDefault();
       const target = event.target;
       
-      // Form "Beri Tugas"
       if (target.id === 'assign-task-form') {
         const selectedUsers = state.assignTaskState.selectedUsers;
         const taskBlocks = state.assignTaskState.taskBlocks;
@@ -1857,7 +1859,6 @@
         setState({ isLoading: false });
         showNotification(result.message, false); 
         
-        // Reset form setelah berhasil
         const newBlockId = crypto.randomUUID();
         const newRowId = crypto.randomUUID();
         setState({
@@ -1960,15 +1961,16 @@
       }
     }
 
-    // Admin menyetujui tugas
-    async function handleApproveTask(taskId) {
+    // Admin menyetujui tugas (DIEDIT)
+    async function handleApproveTask(taskId, hasilQty) { // <-- Terima 'hasilQty' baru
       setState({ isLoading: true, loadingMessage: 'Menyetujui tugas...' });
       hideNotification();
 
       const payload = {
         action: 'approveTask', 
         username: state.userUsername, 
-        taskId: taskId
+        taskId: taskId,
+        hasilQty: hasilQty // <-- Kirim 'hasilQty' yang sudah diedit
       };
 
        try {
@@ -1983,13 +1985,47 @@
         setState({ isLoading: false });
         showNotification(result.message, false); 
         
-        fetchTasksForApproval();
+        fetchTasksForApproval(); // Muat ulang data persetujuan
+        fetchAdminData(); // Muat ulang data dashboard
 
       } catch (error) {
         showNotification(`Gagal menyetujui: ${error.message}`, true);
         setState({ isLoading: false });
       }
     }
+
+    // Admin menolak tugas (FUNGSI BARU)
+    async function handleRejectTask(taskId) {
+      setState({ isLoading: true, loadingMessage: 'Menolak tugas...' });
+      hideNotification();
+
+      const payload = {
+        action: 'rejectTask', // <-- Aksi baru
+        username: state.userUsername, 
+        taskId: taskId
+      };
+
+       try {
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload),
+          headers: { 'Content-Type': 'text/plain' },
+        });
+        const result = await response.json();
+        if (result.status !== 'success') throw new Error(result.message);
+        
+        setState({ isLoading: false });
+        showNotification(result.message, false); // "Tugas ditolak."
+        
+        fetchTasksForApproval(); // Muat ulang data persetujuan
+        fetchAdminData(); // Muat ulang data dashboard
+
+      } catch (error) {
+        showNotification(`Gagal menolak: ${error.message}`, true);
+        setState({ isLoading: false });
+      }
+    }
+
 
     // --- FUNGSI BARU: Tampilkan Modal Detail Tugas User ---
     function showUserDetailsModal(username) {
@@ -2005,14 +2041,14 @@
       const statusColors = {
         'Pending': 'text-yellow-600',
         'Pending Approval': 'text-orange-600',
-        'Completed': 'text-emerald-600'
+        'Completed': 'text-emerald-600',
+        'Rejected': 'text-red-600' // <-- Status Baru
       };
       
       const taskRows = userData.tasks.map(task => {
         let statusHtml = '';
         const statusClass = statusColors[task.status] || 'text-gray-600';
         
-        // --- PERUBAHAN: Tambahkan tombol panah jika status 'Pending Approval' ---
         if (task.status === 'Pending Approval') {
           statusHtml = `
             <div class="flex items-center justify-center gap-1.5">
@@ -2026,9 +2062,9 @@
           let statusText = task.status;
           if(task.status === 'Pending') statusText = 'Pending';
           if(task.status === 'Completed') statusText = 'Selesai';
+          if(task.status === 'Rejected') statusText = 'Ditolak'; // <-- Status Baru
           statusHtml = `<span class="font-medium ${statusClass}">${statusText}</span>`;
         }
-        // --- AKHIR PERUBAHAN ---
 
         return `
           <tr class="border-b last:border-b-0">
@@ -2070,7 +2106,7 @@
       const modal = getEl('user-task-modal');
       if (modal) {
         modal.classList.add('hidden');
-        getEl('user-task-modal-body').innerHTML = ''; // Kosongkan isi
+        getEl('user-task-modal-body').innerHTML = ''; 
       }
     }
 
@@ -2105,7 +2141,6 @@
       getEl('sidebar-nav').addEventListener('click', handleSidebarClick);
       getEl('app-notification-close').addEventListener('click', hideNotification);
 
-      // --- PERUBAHAN: Listener untuk header atas dan dropdown ---
       getEl('user-menu-button').addEventListener('click', () => {
         getEl('logout-dropdown').classList.toggle('hidden');
       });
@@ -2121,39 +2156,30 @@
           dropdown.classList.add('hidden');
         }
       });
-      // --------------------------------------------------------
 
-      // --- DITAMBAHKAN ---
       // Listener untuk modal (tutup dan navigasi)
       getEl('user-task-modal').addEventListener('click', (event) => {
-        // Tombol tutup (X)
         if (event.target.closest('#user-task-modal-close')) {
           hideUserDetailsModal();
         }
-        // Klik overlay (latar belakang)
         if (event.target.id === 'user-task-modal') {
           hideUserDetailsModal();
         }
-        // Tombol "Pergi ke Persetujuan" (panah)
         if (event.target.closest('.goto-approval-btn')) {
           navigateToView('taskApproval');
         }
       });
-      // --- AKHIR TAMBAHAN ---
 
-      // --- PERUBAHAN: Listener untuk Sidebar Mobile ---
+      // Listener untuk Sidebar Mobile
       getEl('mobile-menu-button').addEventListener('click', openMobileSidebar);
       getEl('mobile-sidebar-close').addEventListener('click', closeMobileSidebar);
       getEl('mobile-sidebar-overlay').addEventListener('click', closeMobileSidebar);
       getEl('sidebar-nav-mobile').addEventListener('click', handleSidebarClick);
-      // ---------------------------------------------
       
-      // --- PERUBAHAN: Listener untuk tombol dropdown TUGAS MANDIRI ---
-      // Kita pakai event delegation di body agar berfungsi di desktop & mobile
+      // Listener untuk tombol dropdown TUGAS MANDIRI
       document.body.addEventListener('click', function(event) {
         const toggleButton = event.target.closest('#toggle-tugas-mandiri');
         if (toggleButton) {
-          // Cari submenu dan panah terdekat (agar bisa bekerja di mobile-nav juga)
           const parentNav = toggleButton.closest('nav, aside');
           if (!parentNav) return; 
 
@@ -2166,16 +2192,14 @@
           }
         }
       });
-      // ------------------------------------------------------------
       
-      // --- PERUBAHAN: Listener untuk tombol "Kembali" di browser/HP ---
+      // Listener untuk tombol "Kembali" di browser/HP
       window.addEventListener('popstate', (event) => {
         let viewToRender = state.userRole === 'admin' ? 'adminDashboard' : 'userDashboard';
         
         if (event.state && event.state.view) {
           viewToRender = event.state.view;
         } else {
-          // Jika kembali ke state awal (sebelum #)
           const hashView = window.location.hash.substring(1);
           if (hashView) {
             viewToRender = hashView;
@@ -2183,11 +2207,8 @@
         }
         
         console.log('Popstate triggered, rendering view:', viewToRender);
-        
-        // Cukup ubah state aplikasi dan biarkan render() bekerja
         setState({ currentTaskView: viewToRender });
       });
-      // ----------------------------------------------------------------
 
       // Event Delegation untuk Konten Dinamis
       const viewContainer = getEl('view-container');
@@ -2196,8 +2217,6 @@
       viewContainer.addEventListener('change', handleViewContainerChange);
       viewContainer.addEventListener('submit', handleViewContainerSubmit); 
       
-      // Render awal (dipindah ke dalam handleLogin/else)
-      // render();
     });
 
   </script>
