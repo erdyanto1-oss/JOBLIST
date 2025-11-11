@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pekerjaan Harian v2.2</title> <!-- Judul diubah -->
+  <title>Pekerjaan Harian v2.4</title> <!-- Judul diubah -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -185,6 +185,13 @@
             Persetujuan Tugas
           </button>
           
+          <!-- === TOMBOL LAPORAN ADMIN BARU === -->
+          <button data-view="adminLaporan" class="sidebar-button w-full text-left px-4 py-3 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31L188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-80a8,8,0,0,1-8,8H104a8,8,0,0,1,0-16h48A8,8,0,0,1,160,136Zm0,40a8,8,0,0,1-8,8H104a8,8,0,0,1,0-16h48A8,8,0,0,1,160,176Z"></path></svg>
+            Laporan Admin
+          </button>
+          <!-- === AKHIR TOMBOL BARU === -->
+          
         </div>
       </nav>
 
@@ -196,43 +203,61 @@
     <!-- Panel Kanan (Header + Konten) -->
     <div class="flex-1 flex flex-col h-screen">
       
-      <!-- Header Atas (BARU) -->
-      <header class="bg-white border-b border-gray-200 p-4 flex justify-between items-center z-10">
-        <!-- Tombol Sync Pindah ke sini -->
-        <button id="sync-button" title="Sinkronkan Data" class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition duration-200">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M232.83,141.66A8,8,0,0,1,224,144H211.45a88.08,88.08,0,0,1-150.9,0H32a8,8,0,0,1-8-8,8.22,8.22,0,0,1,6.37-7.9,8,8,0,0,1,9.53,6.23A72.1,72.1,0,0,0,128,200a72,72,0,0,0,71.9-63.67,8,8,0,0,1,9.53-6.23A8.22,8.22,0,0,1,216,136h8A8,8,0,0,1,232.83,141.66ZM44.55,112H72a8,8,0,0,0,0-16H44.55a88.08,88.08,0,0,1,150.9,0H224a8,8,0,0,0,0,16h-27.45a72.1,72.1,0,0,0-137,0Z"></path></svg>
-        </button>
+      <!-- ============================================= -->
+      <!-- === PERUBAHAN HEADER DIMULAI DI SINI === -->
+      <!-- ============================================= -->
+      <header class="bg-white border-b border-gray-200 p-4 grid grid-cols-3 items-center z-10">
         
-        <!-- Tombol Buka Menu Mobile -->
-        <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,88H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"></path></svg>
-        </button>
-        
-        <!-- Tombol Profil/Logout (Baru) -->
-        <div id="user-profile-menu" class="relative hidden md:block"> <!-- Sembunyikan di mobile dulu -->
-          <button id="user-menu-button" class="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
-            <span id="user-username-display" class="font-medium text-sm text-gray-700">Memuat...</span>
-            <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM88,104a40,40,0,1,1,40,40A40,40,0,0,1,88,104Zm89.41,72.38a64.09,64.09,0,0,0-102.82,0,8,8,0,1,0,12.82,8A48.07,48.07,0,0,1,164,168.16a8,8,0,0,0,13.41,6.22Z"></path></svg>
+        <!-- Kolom Kiri (Tombol Menu Mobile) -->
+        <div class="justify-self-start">
+          <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,88H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"></path></svg>
           </button>
-          <div id="logout-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border z-20">
-            <div class="p-3 border-b">
-              <p class="text-sm font-medium text-gray-800 truncate" id="user-username-dropdown">Memuat...</p>
-              <p class="text-xs text-indigo-500 capitalize" id="user-role-dropdown">role</p>
+        </div>
+
+        <!-- Kolom Tengah (Tombol Sync) -->
+        <div class="justify-self-center">
+          <button id="sync-button" title="Sinkronkan Data" class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition duration-200">
+            <!-- IKON BARU -->
+            <svg id="sync-button-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256" class="transition-transform duration-500">
+              <path d="M235.15,109.15l-32,32a8,8,0,0,1-11.31,0,8,8,0,0,1,0-11.31L212.69,109H144a72,72,0,0,0-72,72,8,8,0,0,1-16,0,88.1,88.1,0,0,1,88-88h68.69l-20.85-20.84a8,8,0,0,1,11.31-11.31l32,32A8,8,0,0,1,235.15,109.15Zm-67.31,37.16a8,8,0,0,0-11.31,11.31L177.37,178.5H112a72,72,0,0,0-72,72,8,8,0,0,0,16,0,56,56,0,0,1,56-56h65.37l-20.85,20.84a8,8,0,0,0,11.31,11.31l32-32a8,8,0,0,0,0-11.31Z"></path>
+<path d="M235.15,109.15l-32,32a8,8,0,0,1-11.31,0,8,8,0,0,1,0-11.31L212.69,109H144a72,72,0,0,0-72,72,8,8,0,0,1-16,0,88.1,88.1,0,0,1,88-88h68.69l-20.85-20.84a8,8,0,0,1,11.31-11.31l32,32A8,8,0,0,1,235.15,109.15Zm-67.31,37.16a8,8,0,0,0-11.31,11.31L177.37,178.5H112a72,72,0,0,0-72,72,8,8,0,0,0,16,0,56,56,0,0,1,56-56h65.37l-20.85,20.84a8,8,0,0,0,11.31,11.31l32-32a8,8,0,0,0,0-11.31Z"></path>
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Kolom Kanan (Profil / Logout) -->
+        <div class="justify-self-end">
+          <!-- Tombol Profil/Logout (Desktop) -->
+          <div id="user-profile-menu" class="relative hidden md:block">
+            <button id="user-menu-button" class="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
+              <span id="user-username-display" class="font-medium text-sm text-gray-700">Memuat...</span>
+              <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM88,104a40,40,0,1,1,40,40A40,40,0,0,1,88,104Zm89.41,72.38a64.09,64.09,0,0,0-102.82,0,8,8,0,1,0,12.82,8A48.07,48.07,0,0,1,164,168.16a8,8,0,0,0,13.41,6.22Z"></path></svg>
+            </button>
+            <div id="logout-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border z-20">
+              <div class="p-3 border-b">
+                <p class="text-sm font-medium text-gray-800 truncate" id="user-username-dropdown">Memuat...</p>
+                <p class="text-xs text-indigo-500 capitalize" id="user-role-dropdown">role</p>
+              </div>
+              <button id="logout-button" class="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-100 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M112,24a8,8,0,0,1,8,8V128a8,8,0,0,1-16,0V32A8,8,0,0,1,112,24Zm109.66,98.34a8,8,0,0,0-8.32,1.66A88,88,0,1,1,68.29,68.29a8,8,0,0,0,11.31-11.31A104,104,0,1,0,224,128a8,8,0,0,0-2.34-5.66Z"></path></svg>
+                Logout
+              </button>
             </div>
-            <button id="logout-button" class="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-100 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M112,24a8,8,0,0,1,8,8V128a8,8,0,0,1-16,0V32A8,8,0,0,1,112,24Zm109.66,98.34a8,8,0,0,0-8.32,1.66A88,88,0,1,1,68.29,68.29a8,8,0,0,0,11.31-11.31A104,104,0,1,0,224,128a8,8,0,0,0-2.34-5.66Z"></path></svg>
+          </div>
+
+          <!-- Profil/Logout Mobile (Pindah ke sini) -->
+          <div class="md:hidden">
+            <button id="logout-button-mobile" class="text-sm bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition duration-200">
               Logout
             </button>
           </div>
         </div>
-
-        <!-- Profil/Logout Mobile (Pindah ke sini) -->
-        <div class="md:hidden">
-          <button id="logout-button-mobile" class="text-sm bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition duration-200">
-            Logout
-          </button>
-        </div>
       </header>
+      <!-- =========================================== -->
+      <!-- === PERUBAHAN HEADER SELESAI DI SINI === -->
+      <!-- =========================================== -->
+
 
       <!-- Tampilan Utama (Kanan) -->
       <main class="flex-1 p-4 md:p-8 overflow-y-auto bg-gray-50">
@@ -298,7 +323,7 @@
   <script>
     // --- PENTING! PASTE URL ANDA DI SINI ---
     // GANTI URL INI DENGAN URL DEPLOYMENT ANDA
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzd_xK7lzSSvUCdimLMDbGA_xaObhhAJP4LVXy0AN94vdJUNuKXm5KIAKHZecqck9q3Pw/exec'; 
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwiE_cIHjznBcoYQ1-Gh2WxdtxR6paip35kOdWDq9Aj2uU5aNNIiP-57Ows6rZfbbErcg/exec'; 
     // ----------------------------------------
 
     // --- State Aplikasi ---
@@ -327,7 +352,12 @@
       },
       tasksForApproval: [], 
       userTaskResults: {},
-      adminUserStats: {}
+      adminUserStats: {},
+      // --- STATE BARU UNTUK LAPORAN ADMIN ---
+      adminLaporanData: [], // Akan berisi tugas yang 'Completed'
+      adminLaporanFilter: 'all',
+      adminLaporanExpandedUsers: [], // Array of usernames
+      // --- AKHIR STATE BARU ---
     };
     
     let notificationTimer = null;
@@ -458,6 +488,11 @@
           case 'taskApproval':
             content = renderTaskApprovalView(state.tasksForApproval);
             break;
+          // --- KONTEN BARU ---
+          case 'adminLaporan':
+            content = renderAdminLaporanView(state.adminLaporanData, state.userList, state.adminLaporanFilter, state.adminLaporanExpandedUsers);
+            break;
+          // --- AKHIR KONTEN BARU ---
           default:
             content = `<p>View "${view}" tidak ditemukan.</p>`;
         }
@@ -604,20 +639,28 @@
         pendingApproval: 0, 
         completed: 0,
         rejected: 0, // <-- STATS BARU
-        total: data.length,
+        total: (data || []).length, // Tambah Pengecekan null/undefined
         totalCompletedQuantity: 0, 
         byType: {}
       };
       
       let userStatsData = {}; 
 
-      data.forEach(row => {
-        const status = row[6];
+      (data || []).forEach(row => { // Tambah Pengecekan null/undefined
+        const status = row[7]; // PERBAIKAN: Status ada di indeks 7
         const user = row[1];
-        const type = row[3];
+        
+        // PERBAIKAN: Standarkan tipe (misal: "Packing", "packing" -> "Packing")
+        let type = row[3] || 'Lainnya';
+        if (type.toLowerCase() === 'packing') type = 'Packing';
+        else if (type.toLowerCase() === 'retur') type = 'Retur';
+        else if (type.toLowerCase() === 'inbound') type = 'Inbound';
+        else if (type.toLowerCase() === 'perapian') type = 'Perapian';
+        else if (type.toLowerCase() === 'urgent') type = 'Urgent';
+
         const description = row[4]; 
         const targetQty = parseInt(row[5] || 0, 10); 
-        const hasilQty = parseInt(row[8] || 0, 10); 
+        const hasilQty = parseInt(row[6] || 0, 10); // PERBAIKAN: HasilQty ada di indeks 6
 
         if (status === 'Pending') stats.pending++;
         if (status === 'Pending Approval') stats.pendingApproval++;
@@ -702,7 +745,7 @@
             <div class="bg-white p-5 rounded-xl shadow-lg border">
               <h4 class="text-sm font-medium text-emerald-700">Tugas Selesai</h4>
               <p class="text-3xl font-bold text-emerald-900">${stats.completed}</p>
-              <p class="text-sm font-medium text-gray-500 mt-1">Total Items: ${stats.totalCompletedQuantity}</p>
+              <!-- <p class="text-sm font-medium text-gray-500 mt-1">Total Items: ${stats.totalCompletedQuantity}</p> --> <!-- DIHAPUS SESUAI PERMINTAAN -->
             </div>
           </div>
           
@@ -726,7 +769,7 @@
     // Helper 1: Render Pilihan Karyawan (Checkboxes)
     function renderUserSelection(users, selectedUsers) {
       if (users.length === 0) {
-        return '<p class="text-sm text-gray-500">Memuat daftar karyawan...</p>';
+        return '<p class="text-sm text-gray-500">Tidak ada karyawan ditemukan.</p>'; // DIUBAH
       }
       
       return users.map(user => `
@@ -909,7 +952,7 @@
           const taskType = row[3]
           const taskDesc = row[4];
           const target = row[5];
-          const hasil = row[8]; 
+          const hasil = row[6]; // PERBAIKAN: HasilQty ada di indeks 6
           
           return `
             <tr class="hover:bg-gray-50">
@@ -1122,7 +1165,14 @@
     // --- Render Laporan (Hasil Pekerjaan) ---
     function renderLaporanView(items) {
       const tasksByType = items.reduce((acc, task) => {
-        const type = task.type || 'Lainnya'; 
+        let type = task.type || 'Lainnya'; 
+        // --- PERUBAHAN 1: Standarkan nama grup ---
+        // Mengubah "packing" atau "PACKING" menjadi "Packing"
+        if (type.length > 0) {
+            type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+        }
+        // --- AKHIR PERUBAHAN 1 ---
+        
         if (!acc[type]) {
           acc[type] = [];
         }
@@ -1144,11 +1194,16 @@
           
           const taskRows = tasksInGroup.map(item => {
              let deskripsi = item.taskName || 'Tidak ada deskripsi';
-             if (item.type === 'Packing' && deskripsi.startsWith('Packing SKU: ')) {
+             
+             // --- PERUBAHAN 2: Cek tipe tanpa mempedulikan besar/kecil huruf ---
+             // Cek item.type (data asli) pakai toLowerCase()
+             if (item.type && item.type.toLowerCase() === 'packing' && deskripsi.startsWith('Packing SKU: ')) {
                deskripsi = deskripsi.replace('Packing SKU: ', '');
-             } else if (item.type === 'Retur' && deskripsi.startsWith('Retur Jenis: ')) {
+             } else if (item.type && item.type.toLowerCase() === 'retur' && deskripsi.startsWith('Retur Jenis: ')) {
                deskripsi = deskripsi.replace('Retur Jenis: ', '');
              }
+             // --- AKHIR PERUBAHAN 2 ---
+             
              const jumlah = item.hasil || 0; 
              
              return `
@@ -1194,6 +1249,164 @@
       `;
     }
 
+    // --- (FUNGSI BARU) Render Laporan Admin ---
+    function renderAdminLaporanView(completedTasks, userList, currentFilter, expandedUsers) {
+      // 1. Buat Pilihan Filter
+      const userOptions = userList.map(user => 
+        `<option value="${user}" ${currentFilter === user ? 'selected' : ''}>${user}</option>`
+      ).join('');
+
+      // 2. Filter Data
+      const filteredTasks = (completedTasks || []).filter(taskRow => {
+        if (currentFilter === 'all') return true;
+        return taskRow[1] === currentFilter; // Index 1 is username
+      });
+
+      // 3. Group by User
+      const tasksByUser = filteredTasks.reduce((acc, taskRow) => {
+        const username = taskRow[1]; // Index 1
+        const taskType = taskRow[3]; // Index 3
+        const description = taskRow[4]; // Index 4
+        const target = parseInt(taskRow[5] || 0, 10); // Index 5
+        const hasil = parseInt(taskRow[6] || 0, 10); // Index 6
+
+        if (!acc[username]) {
+          acc[username] = {
+            totalTasks: 0,
+            totalItems: 0,
+            tasks: []
+          };
+        }
+
+        acc[username].totalTasks++;
+        acc[username].totalItems += hasil;
+        acc[username].tasks.push({ type: taskType, description, target, hasil });
+
+        return acc;
+      }, {});
+
+      // 4. Buat Baris Tabel
+      let tableRows = '';
+      const sortedUsers = Object.keys(tasksByUser).sort();
+      
+      if (sortedUsers.length === 0) {
+        tableRows = `
+          <tr>
+            <td colspan="4" class="text-center text-gray-500 py-10">
+              Tidak ada data laporan selesai untuk filter ini.
+            </td>
+          </tr>
+        `;
+      } else {
+        sortedUsers.forEach(username => {
+          const data = tasksByUser[username];
+          const isExpanded = expandedUsers.includes(username);
+
+          // --- Baris Rekap (Ringkasan) ---
+          tableRows += `
+            <tr class="bg-white border-b hover:bg-gray-50">
+              <td class="px-4 py-3 text-sm text-gray-800 font-medium">${username}</td>
+              <td class="px-4 py-3 text-sm text-gray-700 text-center">${data.totalTasks}</td>
+              <td class="px-4 py-3 text-sm text-blue-700 font-bold text-center">${data.totalItems}</td>
+              <td class="px-4 py-3 text-center">
+                <button 
+                  data-username="${username}"
+                  class="admin-laporan-expand-btn p-1 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-100">
+                  <svg class="h-5 w-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+          `;
+
+          // --- Baris Detail (Dropdown) ---
+          if (isExpanded) {
+            const detailRows = data.tasks.map(task => {
+              let deskripsiTugas = task.description;
+              if (task.type === "Packing" && task.description.startsWith("Packing SKU: ")) {
+                deskripsiTugas = task.description.replace("Packing SKU: ", "");
+              }
+              if (task.type === "Retur" && task.description.startsWith("Retur Jenis: ")) {
+                deskripsiTugas = task.description.replace("Retur Jenis: ", "");
+              }
+              
+              return `
+                <tr class="border-t">
+                  <td class="px-4 py-2 text-sm text-gray-700 font-medium">${task.type}</td>
+                  <td class="px-4 py-2 text-sm text-gray-600">${deskripsiTugas}</td>
+                  <td class="px-4 py-2 text-sm text-gray-600 text-center">${task.target}</td>
+                  <td class="px-4 py-2 text-sm text-blue-600 font-medium text-center">${task.hasil}</td>
+                </tr>
+              `;
+            }).join('');
+
+            tableRows += `
+              <tr class="bg-gray-50">
+                <td colspan="4" class="p-0">
+                  <div class="p-4">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Detail Pekerjaan untuk ${username}:</h4>
+                    <div class="overflow-x-auto rounded-lg border bg-white">
+                      <table class="min-w-full">
+                        <thead class="bg-gray-100">
+                          <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Tipe</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/4">Deskripsi</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Target</th>
+                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Hasil</th>
+                          </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                          ${detailRows}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }
+        });
+      }
+
+
+      // 5. Gabungkan HTML
+      return `
+        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
+          <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+            <h2 class="text-3xl font-bold text-gray-900">Laporan Pekerjaan (Admin)</h2>
+            
+            <!-- Filter Dropdown -->
+            <div class="flex items-center gap-2">
+              <label for="admin-laporan-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter User:</label>
+              <select id="admin-laporan-filter" class="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="all" ${currentFilter === 'all' ? 'selected' : ''}>Semua User</option>
+                ${userOptions}
+              </select>
+            </div>
+          </div>
+          
+          <!-- Tabel Laporan -->
+          <div class="overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-200">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Karyawan</th>
+                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Total Tugas</th>
+                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Total Item Selesai</th>
+                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Detail</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                ${tableRows}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    }
+    // --- AKHIR FUNGSI BARU ---
+
 
     // --- Fungsi Aksi & Jaringan (Networking) ---
     
@@ -1215,6 +1428,16 @@
          state.assignTaskState = { ...state.assignTaskState, ...newState.assignTaskState };
          delete newState.assignTaskState;
       }
+      // --- BARU: Hapus view laporan admin jika filter berubah ---
+      if (newState.adminLaporanFilter) {
+         const oldView = getEl('view-adminLaporan');
+         if (oldView) oldView.remove();
+      }
+      if (newState.adminLaporanExpandedUsers) {
+         const oldView = getEl('view-adminLaporan');
+         if (oldView) oldView.remove();
+      }
+      // --- AKHIR BARU ---
       
       state = { ...state, ...newState };
       render();
@@ -1279,17 +1502,21 @@
       const password = getEl('login-password').value;
       
       const url = GAS_WEB_APP_URL;
+      
+      // --- PERBAIKAN v2.4 (Mengirim data sebagai JSON) ---
       const payload = {
         action: 'login',
         username: username,
         password: password
       };
+      // --- AKHIR PERBAIKAN ---
 
       try {
         const response = await fetch(url, {
           method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain' } 
+          // PERBAIKAN: Hapus header Content-Type
+          body: JSON.stringify(payload), // Menggunakan payload JSON
+          mode: 'cors'
         });
 
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
@@ -1305,7 +1532,7 @@
           
           if (hashView) {
              const validUserViews = ['userDashboard', 'packing', 'retur', 'inbound', 'perapian', 'urgent', 'laporan'];
-             const validAdminViews = ['adminDashboard', 'assignTask', 'taskApproval'];
+             const validAdminViews = ['adminDashboard', 'assignTask', 'taskApproval', 'adminLaporan']; // <-- TAMBAH adminLaporan
              
              if ((role === 'user' && validUserViews.includes(hashView)) || 
                  (role === 'admin' && validAdminViews.includes(hashView))) 
@@ -1322,24 +1549,33 @@
           }
 
           if (role === 'admin') {
+            // PERUBAHAN: Panggil setState SETELAH data diambil
+            setState({ isLoading: true, loadingMessage: 'Memuat data admin...' });
+            const adminData = await fetchAdminData();
             setState({
               userUsername: username,
               userRole: 'admin',
               currentView: 'app',
               currentTaskView: defaultView,
+              adminDashboardData: adminData.adminDashboardData,
+              userList: adminData.userList,
               isLoading: false,
             });
-            fetchAdminData();
+            // Hapus fetchAdminData() lama dari sini
           } else {
+            // PERUBAHAN: Panggil setState SETELAH data diambil
+            setState({ isLoading: true, loadingMessage: 'Memuat data pengguna...' });
+            const userTasks = await fetchUserTasks(username); // <-- PERUBAHAN DI SINI
             setState({
               userUsername: username,
               userRole: 'user',
               completedTasks: result.data.completedTasks.map(t => ({...t, completedAt: new Date(t.completedAt)})),
               currentView: 'app',
               currentTaskView: defaultView,
+              assignedTasks: userTasks,
               isLoading: false,
             });
-            fetchUserTasks();
+            // Hapus fetchUserTasks() lama dari sini
           }
         } else {
           setState({ errorMessage: result.message, isLoading: false });
@@ -1376,97 +1612,169 @@
         userList: [],
         assignTaskState: { selectedUsers: [], taskBlocks: [] },
         tasksForApproval: [],
+        // --- RESET STATE BARU ---
+        adminLaporanData: [],
+        adminLaporanFilter: 'all',
+        adminLaporanExpandedUsers: [],
+        // --- AKHIR RESET ---
       }); 
       hideNotification();
     }
 
     // --- Sync Data ---
+    // === PERUBAHAN FUNGSI SYNC UNTUK IKON ===
     async function syncData() {
       setState({ isLoading: true, loadingMessage: 'Sinkronisasi data...' });
       hideNotification();
       
-      if (state.userRole === 'admin') {
-        await fetchAdminData();
-        await fetchTasksForApproval(); 
-      } else {
-        await fetchUserTasks(); 
-      }
+      const syncIcon = getEl('sync-button-icon'); // <-- Get icon
+      if (syncIcon) syncIcon.classList.add('animate-spin'); // <-- Start spin
       
-      setState({ isLoading: false });
-      showNotification("Data berhasil disinkronkan.", false);
+      try { // <-- Add try block
+        let newState = {};
+        if (state.userRole === 'admin') {
+          const adminData = await fetchAdminData();
+          newState.adminDashboardData = adminData.adminDashboardData;
+          newState.userList = adminData.userList;
+          newState.tasksForApproval = await fetchTasksForApproval(); 
+          if (state.currentTaskView === 'adminLaporan') {
+              newState.adminLaporanData = (adminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
+          }
+        } else {
+          newState.assignedTasks = await fetchUserTasks(); 
+        }
+        
+        newState.isLoading = false;
+        setState(newState); 
+        if (syncIcon) syncIcon.classList.remove('animate-spin'); // <-- Stop spin on success
+        showNotification("Data berhasil disinkronkan.", false);
+        
+      } catch (error) { // <-- Add catch block
+        console.error("Sync data error:", error);
+        setState({ isLoading: false });
+        if (syncIcon) syncIcon.classList.remove('animate-spin'); // <-- Stop spin on error
+        showNotification("Gagal sinkronisasi data.", true);
+      }
     }
+    // === AKHIR PERUBAHAN FUNGSI SYNC ===
 
     // --- Fetch Data (Admin) ---
     async function fetchAdminData() {
-      setState({ isLoading: true, loadingMessage: 'Memuat data admin...' });
+      // Hapus setState loading
       try {
+        // PERUBAHAN: Buat payload untuk POST
+        const dashPayload = { action: 'getAdminDashboard', username: state.userUsername };
+        const usersPayload = { action: 'getUsers' }; // <-- PERUBAHAN DI SINI: username dihapus
+
         const [dashResponse, usersResponse] = await Promise.all([
-          fetch(`${GAS_WEB_APP_URL}?action=getAdminDashboard&username=${state.userUsername}`),
-          fetch(`${GAS_WEB_APP_URL}?action=getUsers&username=${state.userUsername}`)
+          // PERUBAHAN: Ubah fetch menjadi POST
+          fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            // PERBAIKAN: Hapus header Content-Type
+            body: JSON.stringify(dashPayload),
+            mode: 'cors'
+          }),
+          // PERUBAHAN: Ubah fetch menjadi POST
+          fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            // PERBAIKAN: Hapus header Content-Type
+            body: JSON.stringify(usersPayload),
+            mode: 'cors'
+          })
         ]);
         
         const dashResult = await dashResponse.json();
         const usersResult = await usersResponse.json();
         
-        let partialState = {};
+        // PERUBAHAN: Jangan panggil setState, tapi siapkan data untuk di-return
+        let adminData = {
+            adminDashboardData: [],
+            userList: []
+        };
+
         if (dashResult.status === 'success') {
-          partialState.adminDashboardData = dashResult.data;
+          adminData.adminDashboardData = dashResult.data;
         }
         if (usersResult.status === 'success') {
-          partialState.userList = usersResult.users;
+          adminData.userList = usersResult.data.users || []; // <-- PERUBAHAN DI SINI
         }
         
         const oldDashView = getEl('view-adminDashboard');
         if(oldDashView) oldDashView.remove();
         const oldAssignView = getEl('view-assignTask');
         if(oldAssignView) oldAssignView.remove();
+        // --- BARU: Hapus view laporan admin jika ada ---
+        const oldLaporanView = getEl('view-adminLaporan');
+        if(oldLaporanView) oldLaporanView.remove();
+        // --- AKHIR BARU ---
         
-        setState(partialState);
+        return adminData; // PERUBAHAN: Kembalikan data
 
       } catch (err) {
         showNotification("Gagal memuat data admin: " + err.message, true);
+        return { adminDashboardData: [], userList: [] }; // PERUBAHAN: Kembalikan data kosong jika error
       }
-      setState({ isLoading: false });
+      // Hapus setState loading
     }
 
     // --- Fetch Data (User) ---
-    async function fetchUserTasks() {
-      setState({ isLoading: true, loadingMessage: 'Memuat tugas harian...' });
+    async function fetchUserTasks(username = null) { // <-- PERUBAHAN DI SINI
+      // Hapus setState loading
       try {
-        const response = await fetch(`${GAS_WEB_APP_URL}?action=getMyTasks&username=${state.userUsername}`);
+        // PERUBAHAN: Gunakan username yang diberikan, atau fallback ke state
+        const currentUsername = username || state.userUsername;
+        // PERUBAHAN: Buat payload untuk POST
+        const payload = { action: 'getMyTasks', username: currentUsername };
+        // PERUBAHAN: Ubah fetch menjadi POST
+        const response = await fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            // PERBAIKAN: Hapus header Content-Type
+            body: JSON.stringify(payload),
+            mode: 'cors'
+        });
         const result = await response.json();
         
         if (result.status === 'success') {
           const oldView = getEl('view-userDashboard');
           if(oldView) oldView.remove();
-          setState({ assignedTasks: result.tasks, isLoading: false });
+          return result.data.tasks; // PERUBAHAN: Kembalikan data (BUG FIX)
         } else {
           throw new Error(result.message);
         }
       } catch (err) {
         showNotification("Gagal memuat tugas harian: " + err.message, true);
-        setState({ isLoading: false });
+        return []; // PERUBAHAN: Kembalikan data kosong jika error
       }
+      // Hapus setState loading
     }
 
     // --- Fetch data untuk persetujuan Admin ---
     async function fetchTasksForApproval() {
-      setState({ isLoading: true, loadingMessage: 'Memuat data persetujuan...' });
+      // Hapus setState loading
       try {
-        const response = await fetch(`${GAS_WEB_APP_URL}?action=getTasksForApproval&username=${state.userUsername}`);
+        // PERUBAHAN: Buat payload untuk POST
+        const payload = { action: 'getTasksForApproval', username: state.userUsername };
+        // PERUBAHAN: Ubah fetch menjadi POST
+        const response = await fetch(GAS_WEB_APP_URL, {
+            method: 'POST',
+            // PERBAIKAN: Hapus header Content-Type
+            body: JSON.stringify(payload),
+            mode: 'cors'
+        });
         const result = await response.json();
         
         if (result.status === 'success') {
           const oldView = getEl('view-taskApproval');
           if(oldView) oldView.remove();
-          setState({ tasksForApproval: result.data, isLoading: false });
+          return result.data; // PERUBAHAN: Kembalikan data
         } else {
           throw new Error(result.message);
         }
       } catch (err) {
         showNotification("Gagal memuat data persetujuan: " + err.message, true);
-        setState({ isLoading: false });
+        return []; // PERUBAHAN: Kembalikan data kosong jika error
       }
+      // Hapus setState loading
     }
 
 
@@ -1479,64 +1787,90 @@
       }
     }
 
-    // --- FUNGSI NAVIGASI BARU (REFAKTOR) ---
-    function navigateToView(view) {
+    // --- (REFAKTOR) FUNGSI NAVIGASI ---
+    // Penambahan parameter: 'fromPopState' untuk mencegah pushState ganda saat tombol 'back' browser ditekan
+    async function navigateToView(view, fromPopState = false) { // TAMBAHKAN async
       if (!view) return; 
       
       closeMobileSidebar();
       hideUserDetailsModal(); 
 
-      if (view !== state.currentTaskView) {
-         const newState = { view: view };
-         const url = `#${view}`; 
-         try {
-           history.pushState(newState, '', url);
-         } catch (e) {
-           console.error("History pushState failed", e);
-         }
+      // Hanya push history jika ini *bukan* dari event 'popstate'
+      if (!fromPopState) {
+        const currentHash = window.location.hash.substring(1);
+        // Cek state DAN hash untuk mencegah push ganda
+        if (view !== state.currentTaskView || view !== currentHash) {
+           const newState = { view: view };
+           const url = `#${view}`; 
+           try {
+             history.pushState(newState, '', url);
+           } catch (e) {
+             console.error("History pushState failed", e);
+           }
+        }
       }
       
-      if (view === 'assignTask') {
-        if (state.userList.length === 0) {
-          fetchAdminData();
+      // --- PERUBAHAN BESAR: Logika pengambilan data dan setState ---
+      setState({ isLoading: true, loadingMessage: 'Memuat data...' });
+      
+      let newState = { currentTaskView: view }; // Kumpulkan state baru di sini
+
+      try {
+        if (view === 'assignTask') {
+          // Selalu fetch data admin saat masuk ke view ini
+          const adminData = await fetchAdminData();
+          newState.userList = adminData.userList;
+          // newState.adminDashboardData = adminData.adminDashboardData; // Opsional jika diperlukan
+
+          const newBlockId = crypto.randomUUID();
+          const newRowId = crypto.randomUUID();
+          newState.assignTaskState = {
+              selectedUsers: [],
+              taskBlocks: [
+                  { id: newBlockId, type: 'Packing', rows: [{id: newRowId, sku: '', quantity: 1}] }
+              ]
+          };
+        } 
+        else if (view === 'adminDashboard') {
+          const adminData = await fetchAdminData();
+          newState.adminDashboardData = adminData.adminDashboardData;
+          newState.userList = adminData.userList;
         }
-        const newBlockId = crypto.randomUUID();
-        const newRowId = crypto.randomUUID();
-        setState({ 
-          currentTaskView: view,
-          assignTaskState: {
-            selectedUsers: [],
-            taskBlocks: [
-              { id: newBlockId, type: 'Packing', rows: [{id: newRowId, sku: '', quantity: 1}] }
-            ]
-          }
-        });
-      } 
-      else if (view === 'adminDashboard') {
-        fetchAdminData(); 
-        setState({ currentTaskView: view });
-      }
-      else if (view === 'taskApproval') {
-        fetchTasksForApproval(); 
-        setState({ currentTaskView: view });
-      }
-      else if (view === 'userDashboard') {
-        fetchUserTasks(); 
-        setState({ currentTaskView: view });
-      }
-      else if (['packing', 'retur', 'inbound', 'perapian', 'urgent'].includes(view)) {
-         setState({ 
-           currentTaskView: view,
-           tasks: {
-             ...state.tasks,
+        // --- LOGIKA BARU UNTUK adminLaporan ---
+        else if (view === 'adminLaporan') {
+          const adminData = await fetchAdminData();
+          newState.adminDashboardData = adminData.adminDashboardData; // Data mentah
+          newState.userList = adminData.userList;
+          // Filter data 'Completed' untuk laporan
+          newState.adminLaporanData = (adminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
+          newState.adminLaporanFilter = 'all'; // Reset filter
+          newState.adminLaporanExpandedUsers = []; // Reset expanded
+        }
+        // --- AKHIR LOGIKA BARU ---
+        else if (view === 'taskApproval') {
+          newState.tasksForApproval = await fetchTasksForApproval();
+        }
+        else if (view === 'userDashboard') {
+          newState.assignedTasks = await fetchUserTasks();
+        }
+        else if (['packing', 'retur', 'inbound', 'perapian', 'urgent'].includes(view)) {
+           newState.tasks = { 
+             ...state.tasks, 
              [view]: [] 
-           }
-         });
+           };
+        }
+        // 'laporan' tidak butuh fetch, jadi `newState` sudah cukup.
+      
+      } catch (error) {
+          console.error("Error navigating to view:", error);
+          showNotification("Gagal memuat data untuk halaman ini.", true);
       }
-      else {
-        setState({ currentTaskView: view });
-      }
+
+      newState.isLoading = false; // Matikan loading
+      setState(newState); // Panggil setState SATU KALI dengan semua data baru
+      // --- AKHIR PERUBAHAN BESAR ---
     }
+    // --- AKHIR REFAKTOR ---
 
 
     // --- Logika klik Konten Utama ---
@@ -1544,6 +1878,22 @@
       const target = event.target;
       const button = target.closest('button');
       if (!button) return; 
+
+      // --- BARU: Tombol Expand Laporan Admin ---
+      if (button.classList.contains('admin-laporan-expand-btn')) {
+        const username = button.dataset.username;
+        let newExpandedList = [...state.adminLaporanExpandedUsers];
+        
+        if (newExpandedList.includes(username)) {
+          newExpandedList = newExpandedList.filter(u => u !== username);
+        } else {
+          newExpandedList.push(username);
+        }
+        
+        setState({ adminLaporanExpandedUsers: newExpandedList });
+        return; // Hentikan eksekusi lebih lanjut
+      }
+      // --- AKHIR BARU ---
 
       if (button.classList.contains('submit-mandiri-button')) {
         const taskType = button.dataset.taskType;
@@ -1719,6 +2069,16 @@
     function handleViewContainerChange(event) {
       const target = event.target;
       
+      // --- BARU: Filter Laporan Admin ---
+      if (target.id === 'admin-laporan-filter') {
+        setState({ 
+          adminLaporanFilter: target.value,
+          adminLaporanExpandedUsers: [] // Tutup semua detail saat filter ganti
+        });
+        return;
+      }
+      // --- AKHIR BARU ---
+      
       if (target.classList.contains('assign-user-checkbox')) {
         const user = target.value;
         const isChecked = target.checked;
@@ -1839,19 +2199,21 @@
           return { description: row.description, quantity: row.quantity };
         })
       }));
-
+      // --- PERBAIKAN v2.4 (Mengirim data sebagai JSON) ---
       const payload = {
-        action: 'assignMegaBatchTasks', 
+        action: 'assignMegaBatchTasks',
         username: state.userUsername,
-        users: users, 
-        taskBlocks: cleanBlocks 
+        users: users,
+        taskBlocks: cleanBlocks
       };
+      // --- AKHIR PERBAIKAN ---
       
       try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain' },
+          // PERBAIKAN: Hapus header Content-Type
+          body: JSON.stringify(payload), // Menggunakan payload JSON
+          mode: 'cors'
         });
         const result = await response.json();
         if (result.status !== 'success') throw new Error(result.message);
@@ -1879,31 +2241,38 @@
     }
     
     // Fungsi untuk submit TUGAS HARIAN (dari tabel)
-    async function handleSubmitTaskForApproval(taskId, hasilQty, targetQty) {
+    async function handleSubmitTaskForApproval(taskId, hasilQty, targetQty) { // TAMBAHKAN async
       setState({ isLoading: true, loadingMessage: 'Mengirim hasil...' });
       hideNotification();
-      
+      // --- PERBAIKAN v2.4 (Mengirim data sebagai JSON) ---
       const payload = {
-        action: 'submitTaskForApproval', 
+        action: 'submitTaskForApproval',
         username: state.userUsername,
         taskId: taskId,
         hasilQty: hasilQty
       };
+      // --- AKHIR PERBAIKAN ---
 
        try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain' },
+          // PERBAIKAN: Hapus header Content-Type
+          body: JSON.stringify(payload), // Menggunakan payload JSON
+          mode: 'cors'
         });
         const result = await response.json();
         if (result.status !== 'success') throw new Error(result.message);
         
-        setState({ isLoading: false });
-        showNotification(result.message, false); 
-        
         delete state.userTaskResults[taskId];
-        fetchUserTasks();
+        
+        // PERBAIKAN: Await fetchUserTasks dan update state
+        const newTasks = await fetchUserTasks();
+        setState({ 
+          isLoading: false,
+          assignedTasks: newTasks 
+        });
+        showNotification(result.message, false); 
+        // Hapus fetchUserTasks() dan setState() yang lama
 
       } catch (error) {
         showNotification(`Gagal mengirim hasil: ${error.message}`, true);
@@ -1928,19 +2297,21 @@
       
       setState({ isLoading: true, loadingMessage: 'Mengirim tugas mandiri...' });
       hideNotification();
-
+      // --- PERBAIKAN v2.4 (Mengirim data sebagai JSON) ---
       const payload = {
-        action: 'submitMandiriTasks', 
+        action: 'submitMandiriTasks',
         username: state.userUsername,
         taskType: taskType,
         items: validItems
       };
+      // --- AKHIR PERBAIKAN ---
 
       try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain' },
+          // PERBAIKAN: Hapus header Content-Type
+          body: JSON.stringify(payload), // Menggunakan payload JSON
+          mode: 'cors'
         });
         const result = await response.json();
         if (result.status !== 'success') throw new Error(result.message);
@@ -1965,28 +2336,47 @@
     async function handleApproveTask(taskId, hasilQty) { // <-- Terima 'hasilQty' baru
       setState({ isLoading: true, loadingMessage: 'Menyetujui tugas...' });
       hideNotification();
-
+      // --- PERBAIKAN v2.4 (Mengirim data sebagai JSON) ---
       const payload = {
-        action: 'approveTask', 
-        username: state.userUsername, 
+        action: 'approveTask',
+        username: state.userUsername,
         taskId: taskId,
-        hasilQty: hasilQty // <-- Kirim 'hasilQty' yang sudah diedit
+        hasilQty: hasilQty
       };
+      // --- AKHIR PERBAIKAN ---
 
        try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain' },
+          // PERBAIKAN: Hapus header Content-Type
+          body: JSON.stringify(payload), // Menggunakan payload JSON
+          mode: 'cors'
         });
         const result = await response.json();
         if (result.status !== 'success') throw new Error(result.message);
         
-        setState({ isLoading: false });
+        // PERBAIKAN: Await fetch functions and update state
+        const newTasksForApproval = await fetchTasksForApproval();
+        const newAdminData = await fetchAdminData();
+
+        let newState = { 
+          isLoading: false,
+          tasksForApproval: newTasksForApproval,
+          adminDashboardData: newAdminData.adminDashboardData,
+          userList: newAdminData.userList
+        };
+
+        // --- BARU: Update data laporan jika sedang dilihat ---
+        if (state.currentTaskView === 'adminLaporan') {
+            newState.adminLaporanData = (newAdminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
+        }
+        // --- AKHIR BARU ---
+
+        setState(newState);
         showNotification(result.message, false); 
         
-        fetchTasksForApproval(); // Muat ulang data persetujuan
-        fetchAdminData(); // Muat ulang data dashboard
+        // Hapus fetchTasksForApproval() lama
+        // Hapus fetchAdminData() lama
 
       } catch (error) {
         showNotification(`Gagal menyetujui: ${error.message}`, true);
@@ -1998,27 +2388,46 @@
     async function handleRejectTask(taskId) {
       setState({ isLoading: true, loadingMessage: 'Menolak tugas...' });
       hideNotification();
-
+      // --- PERBAIKAN v2.4 (Mengirim data sebagai JSON) ---
       const payload = {
-        action: 'rejectTask', // <-- Aksi baru
-        username: state.userUsername, 
+        action: 'rejectTask',
+        username: state.userUsername,
         taskId: taskId
       };
+      // --- AKHIR PERBAIKAN ---
 
        try {
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          body: JSON.stringify(payload),
-          headers: { 'Content-Type': 'text/plain' },
+          // PERBAIKAN: Hapus header Content-Type
+          body: JSON.stringify(payload), // Menggunakan payload JSON
+          mode: 'cors'
         });
         const result = await response.json();
         if (result.status !== 'success') throw new Error(result.message);
         
-        setState({ isLoading: false });
+        // PERBAIKAN: Await fetch functions and update state
+        const newTasksForApproval = await fetchTasksForApproval();
+        const newAdminData = await fetchAdminData();
+
+        let newState = { 
+          isLoading: false,
+          tasksForApproval: newTasksForApproval,
+          adminDashboardData: newAdminData.adminDashboardData,
+          userList: newAdminData.userList
+        };
+
+        // --- BARU: Update data laporan jika sedang dilihat ---
+        if (state.currentTaskView === 'adminLaporan') {
+            newState.adminLaporanData = (newAdminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
+        }
+        // --- AKHIR BARU ---
+        
+        setState(newState);
         showNotification(result.message, false); // "Tugas ditolak."
         
-        fetchTasksForApproval(); // Muat ulang data persetujuan
-        fetchAdminData(); // Muat ulang data dashboard
+        // Hapus fetchTasksForApproval() lama
+        // Hapus fetchAdminData() lama
 
       } catch (error) {
         showNotification(`Gagal menolak: ${error.message}`, true);
@@ -2193,10 +2602,11 @@
         }
       });
       
-      // Listener untuk tombol "Kembali" di browser/HP
+      // --- (PERBAIKAN) Listener untuk tombol "Kembali" di browser/HP ---
       window.addEventListener('popstate', (event) => {
         let viewToRender = state.userRole === 'admin' ? 'adminDashboard' : 'userDashboard';
         
+        // Tentukan view berdasarkan state atau hash
         if (event.state && event.state.view) {
           viewToRender = event.state.view;
         } else {
@@ -2207,7 +2617,9 @@
         }
         
         console.log('Popstate triggered, rendering view:', viewToRender);
-        setState({ currentTaskView: viewToRender });
+        // Panggil navigateToView dengan flag 'fromPopState' true
+        // Ini akan memuat ulang data tanpa mendorong state baru ke history
+        navigateToView(viewToRender, true); 
       });
 
       // Event Delegation untuk Konten Dinamis
