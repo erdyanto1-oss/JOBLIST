@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pekerjaan Harian v2.5</title> <!-- Judul diubah -->
+  <title>Pekerjaan Harian v2.6</title> <!-- Judul diubah -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
@@ -359,6 +359,7 @@
       },
       completedTasks: [], 
       assignedTasks: [],  
+      adminGreeting: null, // <-- STATE BARU UNTUK SAPAAN ADMIN
       adminDashboardData: [], 
       userList: [], 
       assignTaskState: {
@@ -593,131 +594,168 @@
     }
 
     // --- Render User Dashboard (Tabel) ---
+    // --- (DIUBAH TOTAL UNTUK SAPAAN DINAMIS) ---
     function renderUserDashboardView(tasks) {
-      const tasksByType = tasks.reduce((acc, task) => {
-        const type = task.taskType || 'Lainnya';
-        if (!acc[type]) {
-          acc[type] = [];
-        }
-        acc[type].push(task);
-        return acc;
-      }, {});
+      let greetingMessage = '';
+      let greetingClass = ''; // 'bg-emerald-50', 'bg-blue-50', 'bg-gray-50'
 
-      if (tasks.length === 0) {
-        return `
-          <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
-            <h2 class="text-3xl font-bold text-gray-900 mb-6">Dashboard Tugas Harian</h2>
-            <div class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800 p-6 rounded-lg shadow-md">
-              <h4 class="font-bold text-lg mb-2">Pekerjaan Selesai!</h4>
-              <p>Anda hebat! Semua tugas harian yang diberikan telah selesai. Tetap semangat!</p>
-            </div>
-          </div>
-        `;
+      const hasTasks = tasks.length > 0;
+      const adminGreeting = state.adminGreeting; // Sapaan dari admin
+
+      if (hasTasks) {
+        // 1. Ada tugas, tampilkan sapaan admin
+        // Sesuai contoh user: "Semangat hari ini karena urgent diharapkan menyelesaikan tugas tepat waktu, berikut tugas yang harus dikerjakan"
+        greetingMessage = adminGreeting || "Berikut adalah tugas-tugas Anda untuk hari ini. Semangat!"; // Fallback
+        greetingClass = 'bg-blue-50 border-l-4 border-blue-500 text-blue-800'; // Info
+      
+      } else if (!hasTasks && adminGreeting) {
+        // 2. Tidak ada tugas, TAPI adminGreeting ADA (berarti baru saja menyelesaikan)
+        // Sesuai contoh user: "Anda Hebat dan Luar Biasa , tugas telah diselesaikan semua.. Tetap semangat dan jangan lupa istirahat yang cukup, karena hari esok akan lebih menyenangkan"
+        greetingMessage = "Anda Hebat dan Luar Biasa, tugas telah diselesaikan semua! Tetap semangat dan jangan lupa istirahat yang cukup, karena hari esok akan lebih menyenangkan.";
+        greetingClass = 'bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800'; // Sukses
+      
+      } else {
+        // 3. Tidak ada tugas, dan tidak ada sapaan admin (default)
+        const now = new Date();
+        const hour = now.getHours();
+        let timeGreeting = "Selamat datang";
+        if (hour < 11) timeGreeting = "Selamat pagi";
+        else if (hour < 15) timeGreeting = "Selamat siang";
+        else if (hour < 19) timeGreeting = "Selamat sore";
+        else timeGreeting = "Selamat malam";
+        
+        // Sesuai contoh user: " Selamat pagi/selamat datang, semoga dalam keadaan sehat dan kuat mental untuk melakukan pekerjaan hari ini "
+        greetingMessage = `${timeGreeting}, semoga dalam keadaan sehat dan kuat mental untuk melakukan pekerjaan hari ini.`;
+        greetingClass = 'bg-gray-50 border-l-4 border-gray-400 text-gray-800'; // Netral
       }
 
-      let allTables = Object.keys(tasksByType).map(taskType => {
-        const tasksInGroup = tasksByType[taskType];
-        
-        let headerDesc = "Deskripsi";
-        if (taskType === "Packing") headerDesc = "SKU";
-        if (taskType === "Retur") headerDesc = "Jenis Retur";
-        
-        const rows = tasksInGroup.map(task => {
-          const currentHasil = state.userTaskResults[task.taskId] || task.hasil || '';
-          const isPendingApproval = task.status === 'Pending Approval';
-          const isRejected = task.status === 'Rejected'; // <-- CEK BARU
+      // HTML untuk Kotak Sapaan
+      const greetingBoxHtml = `
+        <div class="mb-6 p-6 rounded-lg shadow-md ${greetingClass}">
+          <p class="font-medium text-lg">${greetingMessage}</p>
+        </div>
+      `;
+      
+      // --- Render Tabel (HANYA JIKA ADA TUGAS) ---
+      let allTables = '';
+      if (hasTasks) {
+        const tasksByType = tasks.reduce((acc, task) => {
+          const type = task.taskType || 'Lainnya';
+          if (!acc[type]) {
+            acc[type] = [];
+          }
+          acc[type].push(task);
+          return acc;
+        }, {});
 
-          let deskripsiTugas = task.description;
-          if (taskType === "Packing" && task.description.startsWith("Packing SKU: ")) {
-            deskripsiTugas = task.description.replace("Packing SKU: ", "");
-          }
-          if (taskType === "Retur" && task.description.startsWith("Retur Jenis: ")) {
-            deskripsiTugas = task.description.replace("Retur Jenis: ", "");
-          }
+        allTables = Object.keys(tasksByType).map(taskType => {
+          const tasksInGroup = tasksByType[taskType];
+          
+          let headerDesc = "Deskripsi";
+          if (taskType === "Packing") headerDesc = "SKU";
+          if (taskType === "Retur") headerDesc = "Jenis Retur";
+          
+          const rows = tasksInGroup.map(task => {
+            const currentHasil = state.userTaskResults[task.taskId] || task.hasil || '';
+            const isPendingApproval = task.status === 'Pending Approval';
+            const isRejected = task.status === 'Rejected'; 
 
-          // --- TAMPILKAN STATUS DITOLAK ---
-          let statusHtml;
-          if (isPendingApproval) {
-            statusHtml = `<span class="text-sm font-medium text-yellow-600 bg-yellow-100 px-3 py-1.5 rounded-full">Menunggu ACC</span>`;
-          } else if (isRejected) {
-             statusHtml = `
-                <button 
-                  data-task-id="${task.taskId}"
-                  data-target-qty="${task.quantity}"
-                  class="konfirmasi-tugas-btn bg-blue-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-blue-700 transition duration-200 text-sm">
-                  Kirim Ulang
-                </button>
-                <span class="text-xs text-red-600 block mt-1 font-medium">Ditolak</span>
-              `;
-          } else {
-             statusHtml = `
-                <button 
-                  data-task-id="${task.taskId}"
-                  data-target-qty="${task.quantity}"
-                  class="konfirmasi-tugas-btn bg-emerald-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-emerald-700 transition duration-200 text-sm">
-                  Konfirmasi
-                </button>
-             `;
-          }
-          // --- AKHIR PERUBAHAN STATUS ---
+            let deskripsiTugas = task.description;
+            if (taskType === "Packing" && task.description.startsWith("Packing SKU: ")) {
+              deskripsiTugas = task.description.replace("Packing SKU: ", "");
+            }
+            if (taskType === "Retur" && task.description.startsWith("Retur Jenis: ")) {
+              deskripsiTugas = task.description.replace("Retur Jenis: ", "");
+            }
+
+            let statusHtml;
+            if (isPendingApproval) {
+              statusHtml = `<span class="text-sm font-medium text-yellow-600 bg-yellow-100 px-3 py-1.5 rounded-full">Menunggu ACC</span>`;
+            } else if (isRejected) {
+               statusHtml = `
+                  <button 
+                    data-task-id="${task.taskId}"
+                    data-target-qty="${task.quantity}"
+                    class="konfirmasi-tugas-btn bg-blue-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-blue-700 transition duration-200 text-sm">
+                    Kirim Ulang
+                  </button>
+                  <span class="text-xs text-red-600 block mt-1 font-medium">Ditolak</span>
+                `;
+            } else {
+               statusHtml = `
+                  <button 
+                    data-task-id="${task.taskId}"
+                    data-target-qty="${task.quantity}"
+                    class="konfirmasi-tugas-btn bg-emerald-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-emerald-700 transition duration-200 text-sm">
+                    Konfirmasi
+                  </button>
+               `;
+            }
+
+            return `
+              <tr class="hover:bg-gray-50 ${isRejected ? 'bg-red-50' : ''}">
+                <td class="px-4 py-3 text-sm text-gray-700 font-medium">${deskripsiTugas}</td>
+                <td class="px-4 py-3 text-sm text-gray-700 text-center">${task.quantity}</td>
+                <td class="px-4 py-3">
+                  <input 
+                    type="number" 
+                    value="${currentHasil}"
+                    data-task-id="${task.taskId}"
+                    class="task-hasil-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" 
+                    placeholder="0"
+                    min="0"
+                    ${isPendingApproval ? 'disabled' : ''} 
+                  >
+                </td>
+                <td class="px-4 py-3 text-center">
+                  ${statusHtml}
+                </td>
+              </tr>
+            `;
+          }).join('');
 
           return `
-            <tr class="hover:bg-gray-50 ${isRejected ? 'bg-red-50' : ''}"> <!-- Sorot baris ditolak -->
-              <td class="px-4 py-3 text-sm text-gray-700 font-medium">${deskripsiTugas}</td>
-              <td class="px-4 py-3 text-sm text-gray-700 text-center">${task.quantity}</td>
-              <td class="px-4 py-3">
-                <input 
-                  type="number" 
-                  value="${currentHasil}"
-                  data-task-id="${task.taskId}"
-                  class="task-hasil-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" 
-                  placeholder="0"
-                  min="0"
-                  ${isPendingApproval ? 'disabled' : ''} 
-                >
-              </td>
-              <td class="px-4 py-3 text-center">
-                ${statusHtml} <!-- Gunakan HTML status baru -->
-              </td>
-            </tr>
+            <div class="mb-8">
+              <h3 class="text-2xl font-bold text-gray-900 mb-4">${taskType}</h3>
+              <div class="overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                  <thead class="bg-gray-50">
+                    <tr>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">${headerDesc}</th>
+                      <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Target</th>
+                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hasil</th>
+                      <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody class="bg-white divide-y divide-gray-200">
+                    ${rows}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           `;
         }).join('');
+      } // --- Akhir dari if(hasTasks)
 
-        return `
-          <div class="mb-8">
-            <h3 class="text-2xl font-bold text-gray-900 mb-4">${taskType}</h3>
-            <div class="overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-200">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">${headerDesc}</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Target</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hasil</th>
-                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Status</th>
-                  </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                  ${rows}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-
+      // --- Gabungkan HTML ---
       return `
         <div>
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-3xl font-bold text-gray-900">Dashboard Tugas Harian</h2>
-            <!-- Refresh dipindah ke header atas -->
           </div>
+          
+          <!-- Kotak Sapaan Dinamis Baru -->
+          ${greetingBoxHtml}
+          
+          <!-- Tabel Tugas (hanya render jika ada) -->
           <div>
             ${allTables}
           </div>
         </div>
       `;
     }
+    // --- AKHIR PERUBAHAN RENDER DASHBOARD USER ---
+
 
     // --- Render Admin Dashboard ---
     function renderAdminDashboardView(data) {
@@ -971,6 +1009,7 @@
     }
 
     // Helper 4: Render View Utama "Beri Tugas"
+    // --- (DIUBAH UNTUK MENAMBAH TEXTAREA SAPAAN) ---
     function renderAssignTaskView(users, assignState) {
       
       const userSelectionHtml = renderUserSelection(users, assignState.selectedUsers);
@@ -981,6 +1020,18 @@
           <h2 class="text-3xl font-bold text-gray-900 mb-6">Beri Tugas Baru</h2>
           <form id="assign-task-form">
             
+            <!-- 0. Pesan Sapaan (BARU) -->
+            <div class="mb-6">
+              <label for="admin-greeting-message" class="block text-lg font-medium text-gray-800 mb-2">0. Sapaan untuk Karyawan (Opsional)</label>
+              <textarea 
+                id="admin-greeting-message" 
+                rows="3"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Misal: Semangat hari ini karena urgent..."
+              ></textarea>
+              <p class="text-xs text-gray-500 mt-1">Sapaan ini akan muncul di dashboard user saat mereka menerima tugas ini.</p>
+            </div>
+
             <!-- 1. Pemilihan Karyawan -->
             <div class="mb-6">
               <label class="block text-lg font-medium text-gray-800 mb-2">1. Pilih Karyawan</label>
@@ -1022,6 +1073,7 @@
         </div>
       `;
     }
+    // --- AKHIR PERUBAHAN RENDER BERI TUGAS ---
 
     // --- Render View Admin (PERSETUJUAN) ---
     function renderTaskApprovalView(tasks) {
@@ -1848,6 +1900,7 @@
     }
 
     // --- Handler Login ---
+    // --- (DIUBAH UNTUK MENGAMBIL adminGreeting) ---
     async function handleLogin(event) {
       event.preventDefault();
       setState({ isLoading: true, loadingMessage: 'Logging in...', errorMessage: null });
@@ -1927,6 +1980,10 @@
           } else {
             setState({ isLoading: true, loadingMessage: 'Memuat data pengguna...' });
             const userTasks = await fetchUserTasks(username); 
+            
+            // <-- PERUBAHAN DI SINI: Ambil adminGreeting dari hasil login
+            const adminGreeting = result.data.adminGreeting || null;
+            
             setState({
               userUsername: username,
               userRole: 'user',
@@ -1934,6 +1991,7 @@
               currentView: 'app',
               currentTaskView: defaultView,
               assignedTasks: userTasks,
+              adminGreeting: adminGreeting, // <-- SIMPAN SAPAAN DI STATE
               isLoading: false,
             });
           }
@@ -1968,6 +2026,7 @@
         tasks: { packing: [], retur: [], inbound: [], scanpickup: [], urgent: [], '5r': [] }, // DIUBAH
         completedTasks: [],
         assignedTasks: [],
+        adminGreeting: null, // <-- RESET SAPAAN
         adminDashboardData: [],
         userList: [],
         assignTaskState: { selectedUsers: [], taskBlocks: [] },
@@ -1983,6 +2042,7 @@
     }
 
     // --- Sync Data ---
+    // --- (DIUBAH UNTUK MENGAMBIL adminGreeting) ---
     async function syncData() {
       setState({ isLoading: true, loadingMessage: 'Sinkronisasi data...' });
       hideNotification();
@@ -2009,7 +2069,9 @@
               }
           }
         } else {
-          newState.assignedTasks = await fetchUserTasks(); 
+          // USER ROLE
+          newState.assignedTasks = await fetchUserTasks(); // Ini sudah mengambil greeting
+          
           // (BARU) Refresh laporan user juga
           if (state.currentTaskView === 'laporan') {
              const loginData = JSON.parse(localStorage.getItem('dailyTaskUser'));
@@ -2024,6 +2086,7 @@
                 }
              }
           }
+          // <-- PERUBAHAN: newState.adminGreeting sudah diatur di dalam fetchUserTasks()
         }
         
         newState.isLoading = false;
@@ -2089,6 +2152,7 @@
     }
 
     // --- Fetch Data (User) ---
+    // --- (DIUBAH UNTUK MENGAMBIL adminGreeting) ---
     async function fetchUserTasks(username = null) { 
       try {
         const currentUsername = username || state.userUsername;
@@ -2103,7 +2167,14 @@
         if (result.status === 'success') {
           const oldView = getEl('view-userDashboard');
           if(oldView) oldView.remove();
-          return result.data.tasks; 
+          
+          // <-- PERUBAHAN: Set state sapaan di sini
+          // Cek jika kita SINKRONISASI (state.userUsername sudah ada)
+          if (state.userUsername) {
+            setState({ adminGreeting: result.data.adminGreeting || null });
+          }
+          
+          return result.data.tasks; // Kembalikan hanya tasks
         } else {
           throw new Error(result.message);
         }
@@ -2204,6 +2275,7 @@
         }
         else if (view === 'userDashboard') {
           newState.assignedTasks = await fetchUserTasks();
+          // Sapaan sudah di-set di dalam fetchUserTasks()
         }
         // --- (BARU) Reset filter saat navigasi ke laporan ---
         else if (view === 'laporan') {
@@ -2498,11 +2570,15 @@
     }
     
     // --- Logika Submit Form ---
+    // --- (DIUBAH UNTUK MENGAMBIL adminGreeting) ---
     function handleViewContainerSubmit(event) {
       event.preventDefault();
       const target = event.target;
       
       if (target.id === 'assign-task-form') {
+        // <-- PERUBAHAN: Ambil nilai sapaan
+        const greetingMessage = getEl('admin-greeting-message').value || null;
+        
         const selectedUsers = state.assignTaskState.selectedUsers;
         const taskBlocks = state.assignTaskState.taskBlocks;
         
@@ -2544,7 +2620,8 @@
           showNotification(errorMsg, true);
           return;
         } else {
-          handleAssignMegaBatchTasks(selectedUsers, taskBlocks);
+          // <-- PERUBAHAN: Kirim sapaan ke fungsi handler
+          handleAssignMegaBatchTasks(selectedUsers, taskBlocks, greetingMessage);
         }
       }
     }
@@ -2575,7 +2652,8 @@
     // --- Handler Aksi (Admin & User) ---
     
     // Fungsi untuk kirim BANYAK tugas (Admin)
-    async function handleAssignMegaBatchTasks(users, blocks) {
+    // --- (DIUBAH UNTUK MENGIRIM adminGreeting) ---
+    async function handleAssignMegaBatchTasks(users, blocks, greetingMessage) {
       setState({ isLoading: true, loadingMessage: 'Memberi tugas...' });
       
       const cleanBlocks = blocks.map(block => ({
@@ -2587,11 +2665,13 @@
           return { description: row.description, quantity: row.quantity };
         })
       }));
+      
       const payload = {
         action: 'assignMegaBatchTasks',
         username: state.userUsername,
         users: users,
-        taskBlocks: cleanBlocks
+        taskBlocks: cleanBlocks,
+        greetingMessage: greetingMessage // <-- DATA BARU DIKIRIM
       };
       
       try {
@@ -2616,6 +2696,10 @@
             ]
           }
         });
+        
+        // <-- PERUBAHAN: Kosongkan textarea sapaan setelah berhasil
+        const greetingTextarea = getEl('admin-greeting-message');
+        if (greetingTextarea) greetingTextarea.value = '';
         
         fetchAdminData();
 
@@ -2647,10 +2731,11 @@
         
         delete state.userTaskResults[taskId];
         
-        const newTasks = await fetchUserTasks();
+        const newTasks = await fetchUserTasks(); // Ini akan auto-refresh sapaan
         setState({ 
           isLoading: false,
           assignedTasks: newTasks 
+          // adminGreeting akan di-update oleh fetchUserTasks()
         });
         showNotification(result.message, false); 
 
