@@ -29,6 +29,17 @@
     .rotate-180 {
         transform: rotate(180deg);
     }
+    
+    /* Style untuk tombol filter aktif */
+    .filter-btn-active {
+        background-color: #3b82f6; /* bg-blue-600 */
+        color: white;
+    }
+    .filter-btn {
+        background-color: white;
+        color: #374151; /* text-gray-700 */
+        border: 1px solid #d1d5db; /* border-gray-300 */
+    }
   </style>
 </head>
 <body class="bg-gray-50"> <!-- Latar belakang lebih segar -->
@@ -359,15 +370,79 @@
       adminUserStats: {},
       // --- STATE BARU UNTUK LAPORAN ADMIN ---
       adminLaporanData: [], // Akan berisi tugas yang 'Completed'
-      adminLaporanFilter: 'all',
+      // --- PERUBAHAN STATE FILTER ---
+      userLaporanFilter: 'last30days', // 'today', 'thisMonth', 'last30days'
+      adminLaporanFilter: { 
+        user: 'all', 
+        date: 'last30days' // 'today', 'thisMonth', 'last30days'
+      }, 
+      // --- AKHIR PERUBAHAN STATE ---
       adminLaporanExpandedUsers: [], // Array of usernames
-      // --- AKHIR STATE BARU ---
     };
     
     let notificationTimer = null;
 
     // --- Helper untuk Seleksi Elemen ---
     const getEl = (id) => document.getElementById(id);
+    
+    // --- (BARU) Helper Tanggal ---
+    
+    // Fungsi untuk mem-parsing tanggal (dari Google Sheet / JS)
+    function parseDate(dateInput) {
+      if (!dateInput) return null;
+      // Jika sudah objek Date, kembalikan
+      if (dateInput instanceof Date) {
+        return dateInput;
+      }
+      // Jika string, coba parse
+      if (typeof dateInput === 'string') {
+        // Coba format ISO (yyyy-mm-ddT...)
+        let date = new Date(dateInput);
+        if (!isNaN(date.getTime())) {
+          return date;
+        }
+      }
+      // Jika angka (timestamp)
+      if (typeof dateInput === 'number') {
+         let date = new Date(dateInput);
+         if (!isNaN(date.getTime())) {
+           return date;
+         }
+      }
+      
+      console.warn("Format tanggal tidak dikenal:", dateInput);
+      return null;
+    }
+
+    function isToday(date) {
+      if (!date) return false;
+      const today = new Date();
+      return date.getDate() === today.getDate() &&
+             date.getMonth() === today.getMonth() &&
+             date.getFullYear() === today.getFullYear();
+    }
+
+    function isThisMonth(date) {
+      if (!date) return false;
+      const today = new Date();
+      return date.getMonth() === today.getMonth() &&
+             date.getFullYear() === today.getFullYear();
+    }
+    
+    function isLast30Days(date) {
+        if (!date) return false;
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        // Set ke awal hari 30 hari lalu
+        thirtyDaysAgo.setHours(0, 0, 0, 0);
+        
+        // Data harus setelah (atau sama dengan) 30 hari lalu DAN sebelum (atau sama dengan) hari ini
+        return date >= thirtyDaysAgo && date <= today;
+    }
+    // --- AKHIR Helper Tanggal ---
+
 
     // --- Fungsi Render Utama ---
     function render() {
@@ -489,7 +564,8 @@
             break;
           // === AKHIR PERUBAHAN ===
           case 'laporan':
-            content = renderLaporanView(state.completedTasks);
+            // --- PERUBAHAN: Kirim filter state ---
+            content = renderLaporanView(state.completedTasks, state.userLaporanFilter);
             break;
           case 'adminDashboard':
             content = renderAdminDashboardView(state.adminDashboardData);
@@ -501,6 +577,7 @@
             content = renderTaskApprovalView(state.tasksForApproval);
             break;
           case 'adminLaporan':
+            // --- PERUBAHAN: Kirim filter state ---
             content = renderAdminLaporanView(state.adminLaporanData, state.userList, state.adminLaporanFilter, state.adminLaporanExpandedUsers);
             break;
           default:
@@ -1308,17 +1385,54 @@
     }
     
     // --- Render Laporan (Hasil Pekerjaan) ---
-    function renderLaporanView(items) {
-      const tasksByType = items.reduce((acc, task) => {
+    // --- (DIUBAH) ---
+    function renderLaporanView(items, currentFilter) {
+      
+      // --- (BARU) Tombol Filter ---
+      const filterButtons = `
+        <div class="flex flex-wrap gap-2 mb-6">
+          <button 
+            data-filter="today" 
+            class="user-laporan-filter-btn px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${currentFilter === 'today' ? 'filter-btn-active' : 'filter-btn'}">
+            Hari Ini
+          </button>
+          <button 
+            data-filter="thisMonth" 
+            class="user-laporan-filter-btn px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${currentFilter === 'thisMonth' ? 'filter-btn-active' : 'filter-btn'}">
+            Bulan Ini
+          </button>
+          <button 
+            data-filter="last30days" 
+            class="user-laporan-filter-btn px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${currentFilter === 'last30days' ? 'filter-btn-active' : 'filter-btn'}">
+            30 Hari Terakhir
+          </button>
+        </div>
+      `;
+      
+      // --- (BARU) Logika Filter Data ---
+      const filteredItems = (items || []).filter(item => {
+        const completedDate = parseDate(item.completedAt); // item.completedAt harusnya sudah Date
+        if (!completedDate) return false; // Abaikan jika tidak ada tanggal
+
+        switch (currentFilter) {
+          case 'today':
+            return isToday(completedDate);
+          case 'thisMonth':
+            return isThisMonth(completedDate);
+          case 'last30days':
+          default:
+            return isLast30Days(completedDate);
+        }
+      });
+      
+      // --- Logika grouping (tetap sama) ---
+      const tasksByType = filteredItems.reduce((acc, task) => {
         let type = task.type || 'Lainnya'; 
-        // --- PERUBAHAN 1: Standarkan nama grup ---
         if (type.length > 0) {
             type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
         }
-        // === PERUBAHAN TAMBAHAN ===
         if (type.toLowerCase() === '5r') type = '5R dan Lain-lain';
         if (type.toLowerCase() === 'scanpickup') type = 'Scan Pick Up';
-        // === AKHIR PERUBAHAN ===
         
         if (!acc[type]) {
           acc[type] = [];
@@ -1328,10 +1442,10 @@
       }, {});
 
       let content = '';
-      if (items.length === 0) {
+      if (filteredItems.length === 0) {
         content = `
           <div class="bg-white p-6 rounded-xl shadow-lg border text-center">
-            <p class="text-gray-500">Belum ada pekerjaan yang diselesaikan.</p>
+            <p class="text-gray-500">Belum ada pekerjaan yang diselesaikan untuk filter ini.</p>
           </div>
         `;
       } else {
@@ -1342,21 +1456,17 @@
           const taskRows = tasksInGroup.map(item => {
              let deskripsi = item.taskName || 'Tidak ada deskripsi';
              
-             // --- PERUBAHAN 2: Cek tipe tanpa mempedulikan besar/kecil huruf ---
              if (item.type && item.type.toLowerCase() === 'packing' && deskripsi.startsWith('Packing SKU: ')) {
                deskripsi = deskripsi.replace('Packing SKU: ', '');
              } else if (item.type && item.type.toLowerCase() === 'retur' && deskripsi.startsWith('Retur Jenis: ')) {
                deskripsi = deskripsi.replace('Retur Jenis: ', '');
              }
-             // === PERUBAHAN TAMBAHAN ===
              else if (item.type && item.type.toLowerCase() === '5r' && deskripsi.includes(' - ')) {
-               // Format: "Jenis - Keterangan"
-               deskripsi = deskripsi.replace('5R: ', ''); // Hapus prefix jika ada
+               deskripsi = deskripsi.replace('5R: ', ''); 
              }
              else if (item.type && item.type.toLowerCase() === 'scanpickup' && deskripsi.startsWith('Scan Pick Up: ')) {
-               deskripsi = deskripsi.replace('Scan Pick Up: ', ''); // "Scan Dispacth"
+               deskripsi = deskripsi.replace('Scan Pick Up: ', ''); 
              }
-             // === AKHIR PERUBAHAN ===
              
              const jumlah = item.hasil || 0; 
              
@@ -1396,6 +1506,10 @@
         <div class="max-w-4xl mx-auto">
           <h2 class="text-3xl font-bold text-gray-900 mb-2">Laporan Pekerjaan Selesai</h2>
           <p class="text-gray-600 mb-6">Laporan ini mencatat semua tugas (Harian & Mandiri) yang telah disetujui oleh Admin.</p>
+          
+          <!-- (BARU) Tombol Filter Dimasukkan di Sini -->
+          ${filterButtons}
+          
           <div class="space-y-6">
             ${content}
           </div>
@@ -1404,16 +1518,77 @@
     }
 
     // --- (FUNGSI BARU) Render Laporan Admin ---
+    // --- (DIUBAH) ---
     function renderAdminLaporanView(completedTasks, userList, currentFilter, expandedUsers) {
+      
+      const userFilter = currentFilter.user;
+      const dateFilter = currentFilter.date;
+
       // 1. Buat Pilihan Filter
       const userOptions = userList.map(user => 
-        `<option value="${user}" ${currentFilter === user ? 'selected' : ''}>${user}</option>`
+        `<option value="${user}" ${userFilter === user ? 'selected' : ''}>${user}</option>`
       ).join('');
+      
+      const dateFilterButtons = `
+        <div class="flex items-center gap-2 flex-wrap">
+          <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter Tanggal:</label>
+          <button data-filter="today" class="admin-laporan-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${dateFilter === 'today' ? 'filter-btn-active' : 'filter-btn'}">
+            Hari Ini
+          </button>
+          <button data-filter="thisMonth" class="admin-laporan-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${dateFilter === 'thisMonth' ? 'filter-btn-active' : 'filter-btn'}">
+            Bulan Ini
+          </button>
+          <button data-filter="last30days" class="admin-laporan-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${dateFilter === 'last30days' ? 'filter-btn-active' : 'filter-btn'}">
+            30 Hari Terakhir
+          </button>
+        </div>
+      `;
 
       // 2. Filter Data
       const filteredTasks = (completedTasks || []).filter(taskRow => {
-        if (currentFilter === 'all') return true;
-        return taskRow[1] === currentFilter; // Index 1 is username
+        // Filter User
+        const userMatch = (userFilter === 'all') || (taskRow[1] === userFilter); // Index 1 is username
+        if (!userMatch) return false;
+        
+        // Filter Tanggal
+        
+        // ================================================================
+        // === PERBAIKAN BUG YANG SAYA LAKUKAN ADA DI BARIS BERIKUT INI ===
+        // ================================================================
+        
+        // --- SEBELUMNYA (SALAH): taskRow[2] ---
+        // const completedDate = parseDate(taskRow[2]); 
+        
+        // --- SESUDAHNYA (BENAR): taskRow[9] ---
+        // Berdasarkan skrip GAS, 'CompletedAt' ada di indeks 9
+        const completedDate = parseDate(taskRow[9]); 
+        
+        // ================================================================
+        // === AKHIR PERBAIKAN ===
+        // ================================================================
+
+        if (!completedDate) {
+          // Jika tidak ada tanggal, loloskan filter (atau set false jika ingin ketat)
+          // console.warn("Task (Admin) tanpa tanggal valid:", taskRow[0]);
+          // Untuk amannya, kita loloskan jika filter "30 Hari Terakhir"
+          // return dateFilter === 'last30days'; 
+          // ATAU, lebih baik, kita anggap data tanpa tanggal sebagai data lama (false)
+          // Kecuali jika backend tidak mengirimnya. Mari kita coba log
+          if(taskRow[9]) console.warn("Admin task date invalid:", taskRow[9]); // Diubah ke [9]
+          // Karena kita tidak yakin, kita tidak bisa filter tanggal
+          // KITA HANYA BISA KEMBALIKAN true (menampilkan semua)
+          return true; // Tidak bisa filter tanggal, jadi loloskan saja
+        }
+
+        switch (dateFilter) {
+          case 'today':
+            return isToday(completedDate);
+          case 'thisMonth':
+            return isThisMonth(completedDate);
+          case 'last30days':
+          default:
+            return isLast30Days(completedDate);
+        }
       });
 
       // 3. Group by User
@@ -1537,14 +1712,25 @@
           <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
             <h2 class="text-3xl font-bold text-gray-900">Laporan Pekerjaan (Admin)</h2>
             
-            <!-- Filter Dropdown -->
+            <!-- Filter Dropdown User -->
             <div class="flex items-center gap-2">
-              <label for="admin-laporan-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter User:</label>
-              <select id="admin-laporan-filter" class="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                <option value="all" ${currentFilter === 'all' ? 'selected' : ''}>Semua User</option>
+              <label for="admin-laporan-user-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter User:</label>
+              <select id="admin-laporan-user-filter" class="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+                <option value="all" ${userFilter === 'all' ? 'selected' : ''}>Semua User</option>
                 ${userOptions}
               </select>
             </div>
+          </div>
+          
+          <!-- (BARU) Filter Tanggal -->
+          <div class="mb-6 p-4 bg-gray-50 rounded-lg border">
+            ${dateFilterButtons}
+          </div>
+          
+          <!-- Peringatan jika filter tanggal tidak berfungsi -->
+          <div id="admin-date-filter-warning" class="hidden mb-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md">
+             <p class="font-bold">Catatan:</p>
+             <p>Filter tanggal mungkin tidak berfungsi jika data dari server tidak menyertakan tanggal selesai (kolom 10). Harap pastikan kolom tanggal ada di Google Sheet.</p>
           </div>
           
           <!-- Tabel Laporan -->
@@ -1572,10 +1758,24 @@
     // --- Fungsi Aksi & Jaringan (Networking) ---
     
     function setState(newState) {
+      // --- (BARU) Cek filter state ---
       if (newState.currentTaskView && newState.currentTaskView === state.currentTaskView) {
+         // Jika view sama, paksa render ulang dengan hapus cache
          const oldView = getEl(`view-${state.currentTaskView}`);
          if (oldView) oldView.remove();
       }
+      else if (newState.userLaporanFilter && newState.userLaporanFilter !== state.userLaporanFilter) {
+         const oldView = getEl('view-laporan');
+         if (oldView) oldView.remove();
+      }
+      else if (newState.adminLaporanFilter) {
+         const oldView = getEl('view-adminLaporan');
+         if (oldView) oldView.remove();
+         // Gabungkan state filter lama dan baru
+         state.adminLaporanFilter = { ...state.adminLaporanFilter, ...newState.adminLaporanFilter };
+         delete newState.adminLaporanFilter; // Hapus agar tidak menimpa
+      }
+      // --- Akhir cek filter ---
       
       if (newState.tasks) {
          Object.keys(newState.tasks).forEach(taskType => {
@@ -1588,10 +1788,6 @@
          if (oldView) oldView.remove();
          state.assignTaskState = { ...state.assignTaskState, ...newState.assignTaskState };
          delete newState.assignTaskState;
-      }
-      if (newState.adminLaporanFilter) {
-         const oldView = getEl('view-adminLaporan');
-         if (oldView) oldView.remove();
       }
       if (newState.adminLaporanExpandedUsers) {
          const oldView = getEl('view-adminLaporan');
@@ -1706,6 +1902,16 @@
              }
           }
 
+          // --- (BARU) Parse tanggal 'completedAt' saat login ---
+          let completedTasks = [];
+          if (result.data.completedTasks) {
+            completedTasks = result.data.completedTasks.map(t => {
+                // Pastikan 'completedAt' di-parse sebagai objek Date
+                return {...t, completedAt: parseDate(t.completedAt)} 
+            });
+          }
+          // --- AKHIR PERUBAHAN ---
+
           if (role === 'admin') {
             setState({ isLoading: true, loadingMessage: 'Memuat data admin...' });
             const adminData = await fetchAdminData();
@@ -1724,7 +1930,7 @@
             setState({
               userUsername: username,
               userRole: 'user',
-              completedTasks: result.data.completedTasks.map(t => ({...t, completedAt: new Date(t.completedAt)})),
+              completedTasks: completedTasks, // --- (DIUBAH) Gunakan data yang sudah di-parse
               currentView: 'app',
               currentTaskView: defaultView,
               assignedTasks: userTasks,
@@ -1767,7 +1973,10 @@
         assignTaskState: { selectedUsers: [], taskBlocks: [] },
         tasksForApproval: [],
         adminLaporanData: [],
-        adminLaporanFilter: 'all',
+        // --- (DIUBAH) Reset filter state ---
+        userLaporanFilter: 'last30days', 
+        adminLaporanFilter: { user: 'all', date: 'last30days' },
+        // --- AKHIR PERUBAHAN ---
         adminLaporanExpandedUsers: [],
       }); 
       hideNotification();
@@ -1790,9 +1999,31 @@
           newState.tasksForApproval = await fetchTasksForApproval(); 
           if (state.currentTaskView === 'adminLaporan') {
               newState.adminLaporanData = (adminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
+              // (BARU) Coba cek kolom tanggal saat sync
+              if (newState.adminLaporanData.length > 0) {
+                 const firstDate = parseDate(newState.adminLaporanData[0][9]); // DIUBAH KE [9]
+                 if (!firstDate) {
+                    const warningEl = getEl('admin-date-filter-warning');
+                    if(warningEl) warningEl.classList.remove('hidden');
+                 }
+              }
           }
         } else {
           newState.assignedTasks = await fetchUserTasks(); 
+          // (BARU) Refresh laporan user juga
+          if (state.currentTaskView === 'laporan') {
+             const loginData = JSON.parse(localStorage.getItem('dailyTaskUser'));
+             // Ini adalah hack, idealnya ada endpoint 'getMyCompletedTasks'
+             // Untuk saat ini, kita harus login ulang secara virtual
+             if(loginData) {
+                const payload = { action: 'login', username: loginData.username, password: loginData.password };
+                const response = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), mode: 'cors' });
+                const result = await response.json();
+                if (result.status === 'success' && result.data.completedTasks) {
+                   newState.completedTasks = result.data.completedTasks.map(t => ({...t, completedAt: parseDate(t.completedAt)}));
+                }
+             }
+          }
         }
         
         newState.isLoading = false;
@@ -1964,7 +2195,8 @@
           newState.adminDashboardData = adminData.adminDashboardData; 
           newState.userList = adminData.userList;
           newState.adminLaporanData = (adminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
-          newState.adminLaporanFilter = 'all'; 
+          // --- (DIUBAH) Reset filter saat navigasi ---
+          newState.adminLaporanFilter = { user: 'all', date: 'last30days' }; 
           newState.adminLaporanExpandedUsers = []; 
         }
         else if (view === 'taskApproval') {
@@ -1972,6 +2204,11 @@
         }
         else if (view === 'userDashboard') {
           newState.assignedTasks = await fetchUserTasks();
+        }
+        // --- (BARU) Reset filter saat navigasi ke laporan ---
+        else if (view === 'laporan') {
+            newState.userLaporanFilter = 'last30days';
+            // Data completedTasks sudah ada di state, tidak perlu fetch
         }
         // === PERUBAHAN DI SINI ===
         else if (['packing', 'retur', 'inbound', 'scanpickup', 'urgent', '5r'].includes(view)) {
@@ -1989,6 +2226,19 @@
 
       newState.isLoading = false; 
       setState(newState); 
+      
+      // (BARU) Cek Peringatan Tanggal Admin setelah render
+      if (view === 'adminLaporan') {
+         setTimeout(() => {
+            if (state.adminLaporanData.length > 0) {
+                 const firstDate = parseDate(state.adminLaporanData[0][9]); // DIUBAH KE [9]
+                 if (!firstDate && state.adminLaporanData[0][9]) { // Jika ada data di kolom 9 tapi tidak valid
+                    const warningEl = getEl('admin-date-filter-warning');
+                    if(warningEl) warningEl.classList.remove('hidden');
+                 }
+              }
+         }, 100);
+      }
     }
 
 
@@ -1997,6 +2247,20 @@
       const target = event.target;
       const button = target.closest('button');
       if (!button) return; 
+      
+      // --- (BARU) Handle Klik Filter ---
+      if (button.classList.contains('user-laporan-filter-btn')) {
+        const filter = button.dataset.filter;
+        setState({ userLaporanFilter: filter });
+        return;
+      }
+      if (button.classList.contains('admin-laporan-filter-btn')) {
+        const filter = button.dataset.filter;
+        // Gunakan object assign untuk update nested state
+        setState({ adminLaporanFilter: { ...state.adminLaporanFilter, date: filter } });
+        return;
+      }
+      // --- AKHIR FILTER ---
 
       if (button.classList.contains('admin-laporan-expand-btn')) {
         const username = button.dataset.username;
@@ -2189,10 +2453,11 @@
     function handleViewContainerChange(event) {
       const target = event.target;
       
-      if (target.id === 'admin-laporan-filter') {
+      // --- (DIUBAH) Handle filter user admin ---
+      if (target.id === 'admin-laporan-user-filter') {
         setState({ 
-          adminLaporanFilter: target.value,
-          adminLaporanExpandedUsers: [] 
+          adminLaporanFilter: { ...state.adminLaporanFilter, user: target.value },
+          adminLaporanExpandedUsers: [] // Reset expand saat ganti user
         });
         return;
       }
