@@ -594,28 +594,42 @@
     }
 
     // --- Render User Dashboard (Tabel) ---
-    // --- (DIUBAH TOTAL UNTUK SAPAAN DINAMIS) ---
+    // --- (DIUBAH TOTAL UNTUK SAPAAN DINAMIS + IKON + WARNA CYAN) ---
     function renderUserDashboardView(tasks) {
       let greetingMessage = '';
-      let greetingClass = ''; // 'bg-emerald-50', 'bg-blue-50', 'bg-gray-50'
+      let greetingClass = ''; 
+      let greetingIconHtml = ''; // <-- BARU: Variabel untuk Ikon
 
       const hasTasks = tasks.length > 0;
       const adminGreeting = state.adminGreeting; // Sapaan dari admin
 
       if (hasTasks) {
-        // 1. Ada tugas, tampilkan sapaan admin
-        // Sesuai contoh user: "Semangat hari ini karena urgent diharapkan menyelesaikan tugas tepat waktu, berikut tugas yang harus dikerjakan"
+        // 1. Ada tugas, tampilkan sapaan admin -> Ganti ke Cyan
         greetingMessage = adminGreeting || "Berikut adalah tugas-tugas Anda untuk hari ini. Semangat!"; // Fallback
-        greetingClass = 'bg-blue-50 border-l-4 border-blue-500 text-blue-800'; // Info
+        // === PERUBAHAN PALET WARNA ===
+        greetingClass = 'bg-cyan-50 border-l-4 border-cyan-500 text-cyan-900'; // Info
+        // === IKON BARU ===
+        greetingIconHtml = `
+          <svg class="h-6 w-6 text-cyan-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256">
+            <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-40V112a8,8,0,0,1,16,0v64a8,8,0,0,1-16,0Zm8-88a12,12,0,1,1,12,12A12,12,0,0,1,128,88Z"></path>
+          </svg>
+        `;
       
       } else if (!hasTasks && adminGreeting) {
-        // 2. Tidak ada tugas, TAPI adminGreeting ADA (berarti baru saja menyelesaikan)
-        // Sesuai contoh user: "Anda Hebat dan Luar Biasa , tugas telah diselesaikan semua.. Tetap semangat dan jangan lupa istirahat yang cukup, karena hari esok akan lebih menyenangkan"
+        // 2. Tidak ada tugas, TAPI adminGreeting ADA (berarti baru saja menyelesaikan) -> Ganti ke Teal
         greetingMessage = "Anda Hebat dan Luar Biasa, tugas telah diselesaikan semua! Tetap semangat dan jangan lupa istirahat yang cukup, karena hari esok akan lebih menyenangkan.";
-        greetingClass = 'bg-emerald-50 border-l-4 border-emerald-500 text-emerald-800'; // Sukses
+        // === PERUBAHAN PALET WARNA ===
+        greetingClass = 'bg-teal-50 border-l-4 border-teal-500 text-teal-900'; // Sukses (Teal)
+        // === IKON BARU (Ceria) ===
+        greetingIconHtml = `
+          <svg class="h-6 w-6 text-teal-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256">
+            <path d="M234.5,114.38l-45.1,32.32L201.86,198a12,12,0,0,1-18.25,12.06L128,183.11l-55.61,26.91A12,12,0,0,1,53.79,198l12.46-51.26-45.1-32.36a12,12,0,0,1,6.54-21.37L79,88.14,103.22,39.52a12,12,0,0,1,21.56,0L149,88.14l51.36,4.87A12,12,0,0,1,234.5,114.38Z" opacity="0.4"></path>
+            <path d="M234.5,114.38l-45.1,32.32L201.86,198a12,12,0,0,1-18.25,12.06L128,183.11l-55.61,26.91A12,12,0,0,1,53.79,198l12.46-51.26-45.1-32.36a12,12,0,0,1,6.54-21.37L79,88.14,103.22,39.52a12,12,0,0,1,21.56,0L149,88.14l51.36,4.87A12,12,0,0,1,234.5,114.38Z"></path>
+          </svg>
+        `;
       
       } else {
-        // 3. Tidak ada tugas, dan tidak ada sapaan admin (default)
+        // 3. Tidak ada tugas, dan tidak ada sapaan admin (default) -> Ganti dari Abu-abu ke Cyan
         const now = new Date();
         const hour = now.getHours();
         let timeGreeting = "Selamat datang";
@@ -624,15 +638,28 @@
         else if (hour < 19) timeGreeting = "Selamat sore";
         else timeGreeting = "Selamat malam";
         
-        // Sesuai contoh user: " Selamat pagi/selamat datang, semoga dalam keadaan sehat dan kuat mental untuk melakukan pekerjaan hari ini "
         greetingMessage = `${timeGreeting}, semoga dalam keadaan sehat dan kuat mental untuk melakukan pekerjaan hari ini.`;
-        greetingClass = 'bg-gray-50 border-l-4 border-gray-400 text-gray-800'; // Netral
+        // === PERUBAHAN PALET WARNA (Ini yang diminta user) ===
+        greetingClass = 'bg-cyan-50 border-l-4 border-cyan-500 text-cyan-900'; // Netral (Cyan)
+        // === IKON BARU (Ceria) ===
+        greetingIconHtml = `
+          <svg class="h-6 w-6 text-cyan-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256">
+            <path d="M128,56a72,72,0,1,0,72,72A72.08,72.08,0,0,0,128,56Zm0,128a56,56,0,1,1,56-56A56.06,56.06,0,0,1,128,184Z" opacity="0.4"></path>
+            <path d="M128,40a8,8,0,0,0,8-8V8a8,8,0,0,0-16,0V32A8,8,0,0,0,128,40ZM216,120h-24a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Zm-40-72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,176,40ZM80,40a8,8,0,0,0,5.66,13.66l16-16a8,8,0,1,0-11.32-11.32l-16,16A8,8,0,0,0,80,40ZM40,120H64a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm45.66,90.34a8,8,0,0,0,11.32,0l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,85.66,210.34ZM128,216a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V224A8,8,0,0,0,128,216Zm82.34-5.66a8,8,0,0,0-11.32,0l-16,16a8,8,0,0,0,11.32,11.32l16-16A8,8,0,0,0,210.34,210.34ZM128,72a56,56,0,1,0,56,56A56.06,56.06,0,0,0,128,72Zm0,96a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"></path>
+          </svg>
+        `;
       }
 
       // HTML untuk Kotak Sapaan
+      // === PERUBAHAN LAYOUT (Tambah flex, ikon) ===
       const greetingBoxHtml = `
-        <div class="mb-6 p-6 rounded-lg shadow-md ${greetingClass}">
-          <p class="font-medium text-lg">${greetingMessage}</p>
+        <div class="mb-6 p-5 rounded-lg shadow-md ${greetingClass} flex items-start gap-4">
+          <div class="flex-shrink-0 pt-0.5">
+            ${greetingIconHtml}
+          </div>
+          <div class="flex-1">
+            <p class="font-medium text-lg leading-relaxed">${greetingMessage}</p>
+          </div>
         </div>
       `;
       
