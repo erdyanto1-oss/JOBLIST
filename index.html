@@ -1,3224 +1,710 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pekerjaan Harian v2.6</title> <!-- Judul diubah -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .hidden { display: none; }
-    .opacity-0 { opacity: 0; }
-    .transition-all {
-      transition-property: all;
-      transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-      transition-duration: 300ms;
-    }
-    /* Sembunyikan panah default di input number */
-    input[type=number]::-webkit-inner-spin-button, 
-    input[type=number]::-webkit-outer-spin-button { 
-      -webkit-appearance: none; 
-      margin: 0; 
-    }
-    input[type=number] {
-      -moz-appearance: textfield;
-    }
-    
-    /* Style untuk panah dropdown yang berputar */
-    .rotate-180 {
-        transform: rotate(180deg);
-    }
-    
-    /* Style untuk tombol filter aktif */
-    .filter-btn-active {
-        background-color: #3b82f6; /* bg-blue-600 */
-        color: white;
-    }
-    .filter-btn {
-        background-color: white;
-        color: #374151; /* text-gray-700 */
-        border: 1px solid #d1d5db; /* border-gray-300 */
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Report Pekerjaan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3498db; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Bottom Nav Active State */
+        .nav-active { color: #2563eb; border-top: 2px solid #2563eb; }
+        .nav-inactive { color: #9ca3af; }
+    </style>
 </head>
-<body class="bg-gray-50"> <!-- Latar belakang lebih segar -->
+<body class="bg-gray-100 min-h-screen text-gray-800">
 
-  <!-- 0. Peringatan Konfigurasi -->
-  <div id="config-warning" class="hidden flex items-center justify-center h-screen bg-red-100 p-8">
-    <div class="bg-white p-8 rounded-lg shadow-xl text-center">
-      <h1 class="text-2xl font-bold text-red-700 mb-4">Konfigurasi Diperlukan</h1>
-      <p class="text-gray-700">
-        Harap salin URL Aplikasi Web dari Google Apps Script dan tempelkan ke variabel
-        <code class="bg-gray-200 p-1 rounded">GAS_WEB_APP_URL</code> di dalam tag &lt;script&gt; file HTML ini.
-      </p>
-    </div>
-  </div>
+    <script>
+        // PASTE URL DEPLOYMENT GOOGLE APPS SCRIPT ANDA DISINI
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxirDeGKLuDCeBbX4JXrLRk2a-hiUSbOBy19M7lvCoUMEJ6SdGyvsctTLe7O0--4c76/exec"; 
+    </script>
 
-  <!-- 1. Indikator Loading -->
-  <div id="loading-overlay" class="fixed inset-0 bg-white bg-opacity-75 flex items-center justify-center z-[99]">
-    <div class="text-center">
-      <div class="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-      <p id="loading-message" class="mt-4 text-gray-700 font-medium">Memuat Aplikasi...</p>
-    </div>
-  </div>
-
-  <!-- 2. Halaman Login -->
-  <div id="login-view" class="hidden flex items-center justify-center min-h-screen bg-gray-50 p-4"> <!-- BG diubah -->
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-      <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
-        Joblist dan Target Harian
-      </h1>
-      
-      <form id="login-form">
-        <div class="mb-4">
-          <label for="login-username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
-          <input 
-            type="text" 
-            id="login-username"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
-            required
-          />
-        </div>
-        <div class="mb-6">
-          <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
-          <div class="relative">
-            <input 
-              type="password" 
-              id="login-password"
-              class="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
-              required
-            />
-            <button type="button" id="toggle-login-password" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600">
-              <svg class="eye-icon-open h-5 w-5" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M247.31,124.76c-5.46-9.4-42.17-68.4-119.31-68.4S14.15,115.36,8.69,124.76a8,8,0,0,0,0,6.48c5.46,9.4,42.17,68.4,119.31,68.4S241.85,134.16,247.31,131.24A8,8,0,0,0,247.31,124.76ZM128,192c-35.3,0-64-28.7-64-64s28.7-64,64-64,64,28.7,64,64S163.3,192,128,192Zm0-80a16,16,0,1,0,16,16A16,16,0,0,0,128,112Z"></path></svg>
-              <svg class="eye-icon-closed h-5 w-5 hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M208.82,187.18l-19.49-19.49a80.3,80.3,0,0,0-23-11.33,16,16,0,0,0-15.82,1.32l-10.37-10.37a48,48,0,0,1-50.28,0L79.14,136.6A80,80,0,0,0,46.53,158L29.35,175.14a8,8,0,0,0,11.32,11.32L58.82,168.3A125.53,125.53,0,0,0,128,192a124.1,124.1,0,0,0,65.3-21.3l21.9,21.9a8,8,0,0,0,11.32-11.32ZM128,176a64,64,0,0,1-53.53-27.1,8,8,0,0,0-12.2-2.31L47.18,161.68C60.46,177.19,92.34,192.54,128,192.6c3.2,0,6.39,0,9.57-.14l-11-11A64.18,64.18,0,0,1,128,176ZM167,144.15l-10.28-10.28a16,16,0,0,0-21.4-1.23,32,32,0,0,0-28.71-28.71,16,16,0,0,0-1.23-21.4L95.1,72.25A64.11,64.11,0,0,1,128,80a64,64,0,0,1,39,112.15ZM144,128a16,16,0,1,1-16-16A16,16,0,0,1,144,128Zm87.31-2.76c-5.46-9.4-42.17-68.4-119.31-68.4-23.3,0-44.49,6.7-62.59,17.71L34.3,61.35A8,8,0,0,0,23,72.67l17.18,17.18,0,0L59.09,108.76a8,8,0,0,0,12.2,2.31A64,64,0,0,1,128,112a16,16,0,0,0,1.18,0l12.14-1.51a15.91,15.91,0,0,0,5-2.61l10.2,10.2a32.06,32.06,0,0,0-3,17.92,16,16,0,0,0,1.23,21.4l10.28,10.28a64.11,64.11,0,0,1-39,12.15,63.53,63.53,0,0,1-11.37-1.1L96.26,176.4A80.31,80.31,0,0,0,128,184a79.4,79.4,0,0,0,46.33-14.47l18.52,18.52L208,203.21a125.53,125.53,0,0,0,30.34-21.84l.05,0C253.49,166,256.3,161,247.31,131.24A8,8,0,0,0,247.31,125.24Z"></path></svg>
-            </button>
-          </div>
-        </div>
-
-        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4 text-sm">
-          <!-- Pesan error akan diisi oleh JS -->
-        </div>
-
-        <button type="submit" class="w-full bg-blue-500 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-blue-600 transition duration-300">
-          Login
-        </button>
-      </form>
-
-      <div class="text-center mt-6">
-        <p class="text-sm text-gray-600">
-          Belum punya akun? Hubungi pak Erdi.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. Halaman Aplikasi Utama -->
-  <div id="app-view" class="hidden flex h-screen"> <!-- Tata letak utama diubah -->
-    
-    <!-- Menu Kiri (Sidebar) -->
-    <aside id="main-sidebar" class="w-64 bg-slate-900 text-white p-6 flex-col shadow-lg hidden md:flex"> <!-- BG diubah, ID ditambah -->
-      <div class="flex justify-between items-center mb-8">
-        <!-- Header Sidebar Baru -->
-        <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 text-transparent bg-clip-text">
-          Joblist dan Target Harian
-        </h2>
-      </div>
-
-      <!-- Navigasi dipindahkan ke div terpisah untuk scroll jika perlu -->
-      <nav id="sidebar-nav" class="flex-1 space-y-2 overflow-y-auto">
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-xl relative overflow-hidden flex flex-col">
         
-        <!-- === MENU USER === -->
-        <div id="user-menu" class="hidden">
-          <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mt-4 mb-2">Dashboard</h3>
-          <button data-view="userDashboard" class="sidebar-button w-full text-left px-4 py-3 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3 bg-indigo-600">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,16V88H40V56ZM40,200V104H216V200Z"></path></svg>
-            Dashboard Tugas Harian
-          </button>
-
-          <!-- === TUGAS MANDIRI (DROPDOWN) === -->
-          <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mt-4 mb-2">Tugas Mandiri</h3>
-          
-          <!-- Tombol Utama (Toggle) -->
-          <button id="toggle-tugas-mandiri" class="sidebar-button-toggle w-full text-left px-4 py-3 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center justify-between gap-3">
-            <span class="flex items-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M224,64H192V48a16,16,0,0,0-16-16H80A16,16,0,0,0,64,48V64H32A16,16,0,0,0,16,80v40a16,16,0,0,0,16,16h8v64a16,16,0,0,0,16,16H184a16,16,0,0,0,16-16V136h8a16,16,0,0,0,16-16V80A16,16,0,0,0,224,64ZM80,48H176V64H80ZM184,208H72V128h40a16,16,0,0,0,16-16V80h16v32a16,16,0,0,0,16,16h24Z"></path></svg>
-              Tugas Mandiri
-            </span>
-            <!-- Panah kecil untuk indikator dropdown -->
-            <svg id="arrow-tugas-mandiri" class="h-5 w-5 transition-transform duration-200" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-            </svg>
-          </button>
-
-          <!-- Sub-menu yang bisa disembunyikan -->
-          <div id="submenu-tugas-mandiri" class="hidden pl-7 space-y-1 transition-all">
-            <button data-view="packing" class="sidebar-button w-full text-left px-4 py-2 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3 text-sm">
-              Packing
-            </button>
-            <button data-view="retur" class="sidebar-button w-full text-left px-4 py-2 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3 text-sm">
-              Retur
-            </button>
-            <button data-view="inbound" class="sidebar-button w-full text-left px-4 py-2 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3 text-sm">
-              Inbound
-            </button>
-            <!-- === PERUBAHAN DI SINI === -->
-            <button data-view="scanpickup" class="sidebar-button w-full text-left px-4 py-2 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3 text-sm">
-              Scan Pick Up
-            </button>
-            <button data-view="urgent" class="sidebar-button w-full text-left px-4 py-2 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3 text-sm">
-              Urgent
-            </button>
-            <!-- === TOMBOL BARU === -->
-            <button data-view="5r" class="sidebar-button w-full text-left px-4 py-2 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3 text-sm">
-              5R dan Lain-lain
-            </button>
-            <!-- === AKHIR PERUBAHAN === -->
-          </div>
-          <!-- === AKHIR PERUBAHAN DROPDOWN === -->
-          
-
-          <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-2">Laporan</h3>
-          <button data-view="laporan" class="sidebar-button w-full text-left px-4 py-3 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M208,32H48A16,16,0,0,0,32,48V208a16,16,0,0,0,16,16H208a16,16,0,0,0,16-16V48A16,16,0,0,0,208,32ZM128,184a12,12,0,1,1,12-12A12,12,0,0,1,128,184Zm40-84.82-53.3,53.3a8,8,0,0,1-11.32,0L70,119.18A8,8,0,0,1,81.3,108L98.5,125.17l48-48A8,8,0,0,1,168,99.18Z"></path></svg>
-            Hasil Pekerjaan
-          </button>
-        </div>
-
-        <!-- === MENU ADMIN === -->
-        <div id="admin-menu" class="hidden">
-          <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mt-4 mb-2">Menu Admin</h3>
-          <button data-view="adminDashboard" class="sidebar-button w-full text-left px-4 py-3 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3 bg-indigo-600">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,16V88H40V56ZM40,200V104H216V200Z"></path></svg>
-            Admin Dashboard
-          </button>
-          <button data-view="assignTask" class="sidebar-button w-full text-left px-4 py-3 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M224,48H184V32a8,8,0,0,0-8-8H80a8,8,0,0,0-8,8V48H32a8,8,0,0,0-8,8V216a8,8,0,0,0,8,8H224a8,8,0,0,0,8-8V56A8,8,0,0,0,224,48ZM88,40h80V80H88ZM216,208H40V64H80v16a8,8,0,0,0,8,8h80a8,8,0,0,0,8-8V64h40Z"></path></svg>
-            Beri Tugas Baru
-          </button>
-          
-          <button data-view="taskApproval" class="sidebar-button w-full text-left px-4 py-3 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M168,88a8,8,0,0,1-8,8H96a8,8,0,0,1-8-8V40a8,8,0,0,1,8-8h64a8,8,0,0,1,8,8ZM232,128A104,104,0,1,1,128,24,104.11,104.11,0,0,1,232,128Zm-40,1.75a8,8,0,0,0-8.83-7.92,80,80,0,1,0-80.34,0A8,8,0,0,0,96,129.75a103.11,103.11,0,0,0-23.3,47.41,8,8,0,0,0,15.86,2.68,87.11,87.11,0,0,1,80.88,0,8,8,0,0,0,15.86-2.68A103.11,103.11,0,0,0,192,129.75Z"></path></svg>
-            Persetujuan Tugas
-          </button>
-          
-          <button data-view="adminLaporan" class="sidebar-button w-full text-left px-4 py-3 rounded-lg hover:bg-slate-700 transition duration-200 font-medium flex items-center gap-3">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M213.66,82.34l-56-56A8,8,0,0,0,152,24H56A16,16,0,0,0,40,40V216a16,16,0,0,0,16,16H200a16,16,0,0,0,16-16V88A8,8,0,0,0,213.66,82.34ZM160,51.31L188.69,80H160ZM200,216H56V40h88V88a8,8,0,0,0,8,8h48V216Zm-40-80a8,8,0,0,1-8,8H104a8,8,0,0,1,0-16h48A8,8,0,0,1,160,136Zm0,40a8,8,0,0,1-8,8H104a8,8,0,0,1,0-16h48A8,8,0,0,1,160,176Z"></path></svg>
-            Laporan Admin
-          </button>
-          
-        </div>
-      </nav>
-
-      <!-- Info User & Logout (Desktop) -->
-      <!-- DIV INI DIHAPUS, dipindah ke header atas -->
-      
-    </aside>
-
-    <!-- Panel Kanan (Header + Konten) -->
-    <div class="flex-1 flex flex-col h-screen">
-      
-      <!-- ============================================= -->
-      <!-- === HEADER === -->
-      <!-- ============================================= -->
-      <header class="bg-white border-b border-gray-200 p-4 grid grid-cols-3 items-center z-10">
-        
-        <!-- Kolom Kiri (Tombol Menu Mobile) -->
-        <div class="justify-self-start">
-          <button id="mobile-menu-button" class="md:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,88H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"></path></svg>
-          </button>
-        </div>
-
-        <!-- Kolom Tengah (Tombol Sync) -->
-        <div class="justify-self-center">
-          <button id="sync-button" title="Sinkronkan Data" class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition duration-200">
-            <svg id="sync-button-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256" class="transition-transform duration-500">
-              <path d="M235.15,109.15l-32,32a8,8,0,0,1-11.31,0,8,8,0,0,1,0-11.31L212.69,109H144a72,72,0,0,0-72,72,8,8,0,0,1-16,0,88.1,88.1,0,0,1,88-88h68.69l-20.85-20.84a8,8,0,0,1,11.31-11.31l32,32A8,8,0,0,1,235.15,109.15Zm-67.31,37.16a8,8,0,0,0-11.31,11.31L177.37,178.5H112a72,72,0,0,0-72,72,8,8,0,0,0,16,0,56,56,0,0,1,56-56h65.37l-20.85,20.84a8,8,0,0,0,11.31,11.31l32-32a8,8,0,0,0,0-11.31Z"></path>
-<path d="M235.15,109.15l-32,32a8,8,0,0,1-11.31,0,8,8,0,0,1,0-11.31L212.69,109H144a72,72,0,0,0-72,72,8,8,0,0,1-16,0,88.1,88.1,0,0,1,88-88h68.69l-20.85-20.84a8,8,0,0,1,11.31-11.31l32,32A8,8,0,0,1,235.15,109.15Zm-67.31,37.16a8,8,0,0,0-11.31,11.31L177.37,178.5H112a72,72,0,0,0-72,72,8,8,0,0,0,16,0,56,56,0,0,1,56-56h65.37l-20.85,20.84a8,8,0,0,0,11.31,11.31l32-32a8,8,0,0,0,0-11.31Z"></path>
-            </svg>
-          </button>
-        </div>
-        
-        <!-- Kolom Kanan (Profil / Logout) -->
-        <div class="justify-self-end">
-          <!-- Tombol Profil/Logout (Desktop) -->
-          <div id="user-profile-menu" class="relative hidden md:block">
-            <button id="user-menu-button" class="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-100 transition">
-              <span id="user-username-display" class="font-medium text-sm text-gray-700">Memuat...</span>
-              <svg class="h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216ZM88,104a40,40,0,1,1,40,40A40,40,0,0,1,88,104Zm89.41,72.38a64.09,64.09,0,0,0-102.82,0,8,8,0,1,0,12.82,8A48.07,48.07,0,0,1,164,168.16a8,8,0,0,0,13.41,6.22Z"></path></svg>
-            </button>
-            <div id="logout-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border z-20">
-              <div class="p-3 border-b">
-                <p class="text-sm font-medium text-gray-800 truncate" id="user-username-dropdown">Memuat...</p>
-                <p class="text-xs text-indigo-500 capitalize" id="user-role-dropdown">role</p>
-              </div>
-              <button id="logout-button" class="w-full text-left px-3 py-2 text-sm text-red-500 hover:bg-gray-100 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M112,24a8,8,0,0,1,8,8V128a8,8,0,0,1-16,0V32A8,8,0,0,1,112,24Zm109.66,98.34a8,8,0,0,0-8.32,1.66A88,88,0,1,1,68.29,68.29a8,8,0,0,0,11.31-11.31A104,104,0,1,0,224,128a8,8,0,0,0-2.34-5.66Z"></path></svg>
-                Logout
-              </button>
+        <!-- LOADING -->
+        <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+            <div class="bg-white p-5 rounded-lg flex flex-col items-center">
+                <div class="loader mb-2"></div>
+                <p class="text-sm font-semibold text-gray-600">Memproses...</p>
             </div>
-          </div>
-
-          <!-- Profil/Logout Mobile (Pindah ke sini) -->
-          <div class="md:hidden">
-            <button id="logout-button-mobile" class="text-sm bg-red-500 text-white px-3 py-1.5 rounded-lg hover:bg-red-600 transition duration-200">
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-      <!-- =========================================== -->
-      <!-- === AKHIR HEADER === -->
-      <!-- =========================================== -->
-
-
-      <!-- Tampilan Utama (Kanan) -->
-      <main class="flex-1 p-4 md:p-8 overflow-y-auto bg-gray-50">
-        
-        <!-- Notifikasi Global -->
-        <div id="app-notification" class="hidden opacity-0 fixed top-20 right-8 z-[100] px-6 py-4 rounded-lg shadow-xl transition-all duration-300 max-w-sm">
-          <span id="app-notification-message">Pesan notifikasi.</span>
-          <button id="app-notification-close" class="absolute top-2 right-2 p-1 rounded-full">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111,163.51-63.52a12,12,0,0,1,17,17L145,128Z"></path></svg>
-          </button>
-        </div>
-        
-        <!-- Container untuk setiap view -->
-        <div id="view-container">
-          <!-- Konten akan di-render oleh JavaScript -->
         </div>
 
-      </main>
-    </div>
-
-    <!-- Sidebar Mobile (Overlay) -->
-    <div id="mobile-sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden md:hidden"></div>
-    <aside id="mobile-sidebar" class="fixed top-0 left-0 w-64 bg-slate-900 text-white h-full p-6 flex flex-col shadow-lg z-40 transform -translate-x-full transition-transform duration-300 md:hidden">
-      <!-- Header Sidebar Mobile -->
-      <div class="flex justify-between items-center mb-8">
-        <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-300 text-transparent bg-clip-text">
-          Joblist Harian
-        </h2>
-        <button id="mobile-sidebar-close" class="p-1">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l46.49-46.49a12,12,0,0,1,17,17L145,128Z"></path></svg>
-        </button>
-      </div>
-      <!-- Konten Navigasi (akan disalin oleh JS) -->
-      <nav id="sidebar-nav-mobile" class="flex-1 space-y-2 overflow-y-auto"></nav>
-      <!-- Info User Mobile (akan disalin oleh JS) -->
-      <div id="mobile-user-info" class="mt-auto"></div>
-    </aside>
-
-  </div>
-
-  <!-- === MODAL DETAIL TUGAS USER (BARU) === -->
-  <div id="user-task-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 transition-all">
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] flex flex-col">
-      <!-- Header Modal -->
-      <div class="flex justify-between items-center p-4 border-b">
-        <h3 id="user-task-modal-title" class="text-xl font-bold text-gray-800">Detail Tugas</h3>
-        <button id="user-task-modal-close" class="p-1 rounded-full text-gray-400 hover:text-gray-600">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l46.49-46.49a12,12,0,0,1,17,17L145,128Z"></path></svg>
-        </button>
-      </div>
-      <!-- Body Modal (Scrollable) -->
-      <div id="user-task-modal-body" class="p-6 overflow-y-auto">
-        <!-- Konten detail akan di-render oleh JS -->
-      </div>
-    </div>
-  </div>
-  <!-- ======================== -->
-
-
-  <!-- ======================== -->
-  <!-- SCRIPT UTAMA APLIKASI    -->
-  <!-- ======================== -->
-  <script>
-    // --- PENTING! PASTE URL ANDA DI SINI ---
-    // GANTI URL INI DENGAN URL DEPLOYMENT ANDA
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwiE_cIHjznBcoYQ1-Gh2WxdtxR6paip35kOdWDq9Aj2uU5aNNIiP-57Ows6rZfbbErcg/exec'; 
-    // ----------------------------------------
-
-    // --- State Aplikasi ---
-    let state = {
-      isLoading: true,
-      loadingMessage: 'Memuat Aplikasi...',
-      currentView: 'login', // 'login' or 'app'
-      currentTaskView: 'userDashboard', // Default view untuk user
-      userUsername: null,
-      userRole: 'user', 
-      errorMessage: null,
-      tasks: { 
-        packing: [],
-        retur: [],
-        inbound: [],
-        scanpickup: [], // DIUBAH DARI 'perapian'
-        urgent: [],
-        '5r': [] // DITAMBAHKAN
-      },
-      completedTasks: [], 
-      assignedTasks: [],  
-      adminGreeting: null, // <-- STATE BARU UNTUK SAPAAN ADMIN
-      adminDashboardData: [], 
-      userList: [], 
-      assignTaskState: {
-        selectedUsers: [], 
-        taskBlocks: []     
-      },
-      tasksForApproval: [], 
-      userTaskResults: {},
-      adminUserStats: {},
-      // --- STATE BARU UNTUK LAPORAN ADMIN ---
-      adminLaporanData: [], // Akan berisi tugas yang 'Completed'
-      // --- PERUBAHAN STATE FILTER ---
-      userLaporanFilter: 'last30days', // 'today', 'thisMonth', 'last30days'
-      adminLaporanFilter: { 
-        user: 'all', 
-        date: 'last30days' // 'today', 'thisMonth', 'last30days'
-      }, 
-      // --- AKHIR PERUBAHAN STATE ---
-      adminLaporanExpandedUsers: [], // Array of usernames
-    };
-    
-    let notificationTimer = null;
-
-    // --- Helper untuk Seleksi Elemen ---
-    const getEl = (id) => document.getElementById(id);
-    
-    // --- (BARU) Helper Tanggal ---
-    
-    // Fungsi untuk mem-parsing tanggal (dari Google Sheet / JS)
-    function parseDate(dateInput) {
-      if (!dateInput) return null;
-      // Jika sudah objek Date, kembalikan
-      if (dateInput instanceof Date) {
-        return dateInput;
-      }
-      // Jika string, coba parse
-      if (typeof dateInput === 'string') {
-        // Coba format ISO (yyyy-mm-ddT...)
-        let date = new Date(dateInput);
-        if (!isNaN(date.getTime())) {
-          return date;
-        }
-      }
-      // Jika angka (timestamp)
-      if (typeof dateInput === 'number') {
-         let date = new Date(dateInput);
-         if (!isNaN(date.getTime())) {
-           return date;
-         }
-      }
-      
-      console.warn("Format tanggal tidak dikenal:", dateInput);
-      return null;
-    }
-
-    function isToday(date) {
-      if (!date) return false;
-      const today = new Date();
-      return date.getDate() === today.getDate() &&
-             date.getMonth() === today.getMonth() &&
-             date.getFullYear() === today.getFullYear();
-    }
-
-    function isThisMonth(date) {
-      if (!date) return false;
-      const today = new Date();
-      return date.getMonth() === today.getMonth() &&
-             date.getFullYear() === today.getFullYear();
-    }
-    
-    function isLast30Days(date) {
-        if (!date) return false;
-        const today = new Date();
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30);
-        
-        // Set ke awal hari 30 hari lalu
-        thirtyDaysAgo.setHours(0, 0, 0, 0);
-        
-        // Data harus setelah (atau sama dengan) 30 hari lalu DAN sebelum (atau sama dengan) hari ini
-        return date >= thirtyDaysAgo && date <= today;
-    }
-    // --- AKHIR Helper Tanggal ---
-
-
-    // --- Fungsi Render Utama ---
-    function render() {
-      // 1. Loading
-      const loadingOverlay = getEl('loading-overlay');
-      const loadingMessageEl = getEl('loading-message'); 
-      if (state.isLoading) {
-        loadingMessageEl.textContent = state.loadingMessage;
-        loadingOverlay.classList.remove('hidden');
-      } else {
-        loadingOverlay.classList.add('hidden');
-      }
-
-      // 2. Peringatan Konfigurasi
-      getEl('config-warning').classList.toggle('hidden', GAS_WEB_APP_URL !== 'PASTE_URL_APLIKASI_WEB_ANDA_DI_SINI');
-      if (GAS_WEB_APP_URL === 'PASTE_URL_APLIKASI_WEB_ANDA_DI_SINI') {
-        getEl('loading-overlay').classList.add('hidden');
-        return; 
-      }
-
-      // 3. View Utama (Login vs App)
-      getEl('login-view').classList.toggle('hidden', state.currentView !== 'login');
-      getEl('app-view').classList.toggle('hidden', state.currentView !== 'app');
-
-      // 4. Render Bagian Login
-      if (state.currentView === 'login') {
-        const errorMsgEl = getEl('error-message');
-        if (state.errorMessage) {
-          errorMsgEl.textContent = state.errorMessage;
-          errorMsgEl.classList.remove('hidden');
-        } else {
-          errorMsgEl.classList.add('hidden');
-        }
-      }
-
-      // 5. Render Bagian Aplikasi (BERDASARKAN ROLE)
-      if (state.currentView === 'app') {
-        // --- PERUBAHAN: Update Info User di Header Atas ---
-        getEl('user-username-display').textContent = state.userUsername;
-        getEl('user-username-dropdown').textContent = state.userUsername;
-        getEl('user-role-dropdown').textContent = state.userRole;
-        // Salin info ke sidebar mobile
-        getEl('mobile-user-info').innerHTML = `
-          <p class="text-xs text-slate-400 mb-1 truncate" title="Username">${state.userUsername}</p>
-          <p class="text-sm font-semibold text-indigo-300 mb-2 capitalize" title="Role">${state.userRole}</p>
-        `;
-        // ------------------------------------------------
-
-        // Tampilkan/Sembunyikan Menu Sidebar
-        getEl('user-menu').classList.toggle('hidden', state.userRole !== 'user');
-        getEl('admin-menu').classList.toggle('hidden', state.userRole !== 'admin');
-        
-        // --- PERUBAHAN: Salin menu ke sidebar mobile ---
-        const userMenuHtml = getEl('user-menu').innerHTML;
-        const adminMenuHtml = getEl('admin-menu').innerHTML;
-        getEl('sidebar-nav-mobile').innerHTML = state.userRole === 'admin' ? adminMenuHtml : userMenuHtml;
-        // --------------------------------------------
-
-        // Update Tombol Sidebar Aktif (Desktop & Mobile)
-        document.querySelectorAll('.sidebar-button').forEach(btn => {
-          btn.classList.toggle('bg-indigo-600', btn.dataset.view === state.currentTaskView);
-          // Hapus style aktif dari tombol sub-menu jika parentnya tidak aktif
-          // === PERUBAHAN DI SINI ===
-          if (btn.closest('#submenu-tugas-mandiri') && !state.currentTaskView.match(/packing|retur|inbound|scanpickup|urgent|5r/)) {
-            btn.classList.remove('bg-indigo-600');
-          }
-        });
-        
-        // Juga update style tombol dropdown jika anaknya aktif
-        document.querySelectorAll('#toggle-tugas-mandiri').forEach(btn => {
-            // === PERUBAHAN DI SINI ===
-            const isActive = state.currentTaskView.match(/packing|retur|inbound|scanpickup|urgent|5r/);
-            btn.classList.toggle('bg-slate-700', isActive); // Style beda untuk parent
-        });
-
-
-        // Render Konten Utama
-        renderMainView(state.currentTaskView);
-      }
-    }
-
-    // --- Fungsi Render Konten (Tabel, Laporan) ---
-    function renderMainView(view) {
-      const container = getEl('view-container');
-      
-      if (container.firstChild) {
-        Array.from(container.children).forEach(child => child.classList.add('hidden'));
-      }
-
-      let viewEl = getEl(`view-${view}`);
-      
-      if (viewEl) {
-        viewEl.classList.remove('hidden');
-      } else {
-        let content = '';
-        switch (view) {
-          case 'userDashboard':
-            content = renderUserDashboardView(state.assignedTasks);
-            break;
-          case 'packing':
-            content = renderPackingView(state.tasks.packing);
-            break;
-          case 'retur':
-            content = renderReturView(state.tasks.retur);
-            break;
-          case 'inbound':
-            content = renderGenericView('inbound', 'Tugas Inbound', state.tasks.inbound);
-            break;
-          // === PERUBAHAN DI SINI ===
-          case 'scanpickup':
-            content = renderScanPickUpView(state.tasks.scanpickup); // Fungsi baru
-            break;
-          case 'urgent':
-            content = renderGenericView('urgent', 'Tugas Urgent', state.tasks.urgent);
-            break;
-          // === KONTEN BARU ===
-          case '5r':
-            content = render5RView(state.tasks['5r']); // Fungsi baru
-            break;
-          // === AKHIR PERUBAHAN ===
-          case 'laporan':
-            // --- PERUBAHAN: Kirim filter state ---
-            content = renderLaporanView(state.completedTasks, state.userLaporanFilter);
-            break;
-          case 'adminDashboard':
-            content = renderAdminDashboardView(state.adminDashboardData);
-            break;
-          case 'assignTask':
-            content = renderAssignTaskView(state.userList, state.assignTaskState);
-            break;
-          case 'taskApproval':
-            content = renderTaskApprovalView(state.tasksForApproval);
-            break;
-          case 'adminLaporan':
-            // --- PERUBAHAN: Kirim filter state ---
-            content = renderAdminLaporanView(state.adminLaporanData, state.userList, state.adminLaporanFilter, state.adminLaporanExpandedUsers);
-            break;
-          default:
-            content = `<p>View "${view}" tidak ditemukan.</p>`;
-        }
-        // Buat elemen baru, set ID, dan tambahkan
-        // Ini mencegah render ulang view yang sudah ada
-        const newViewEl = document.createElement('div');
-        newViewEl.id = `view-${view}`; // ID untuk caching
-        newViewEl.innerHTML = content;
-        container.appendChild(newViewEl);
-      }
-    }
-
-    // --- Render User Dashboard (Tabel) ---
-    // --- (DIUBAH TOTAL UNTUK SAPAAN DINAMIS + IKON + WARNA CYAN) ---
-    function renderUserDashboardView(tasks) {
-      let greetingMessage = '';
-      let greetingClass = ''; 
-      let greetingIconHtml = ''; // <-- BARU: Variabel untuk Ikon
-
-      const hasTasks = tasks.length > 0;
-      const adminGreeting = state.adminGreeting; // Sapaan dari admin
-
-      if (hasTasks) {
-        // 1. Ada tugas, tampilkan sapaan admin -> Ganti ke Cyan
-        greetingMessage = adminGreeting || "Berikut adalah tugas-tugas Anda untuk hari ini. Semangat!"; // Fallback
-        // === PERUBAHAN PALET WARNA ===
-        greetingClass = 'bg-cyan-50 border-l-4 border-cyan-500 text-cyan-900'; // Info
-        // === IKON BARU ===
-        greetingIconHtml = `
-          <svg class="h-6 w-6 text-cyan-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256">
-            <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm-8-40V112a8,8,0,0,1,16,0v64a8,8,0,0,1-16,0Zm8-88a12,12,0,1,1,12,12A12,12,0,0,1,128,88Z"></path>
-          </svg>
-        `;
-      
-      } else if (!hasTasks && adminGreeting) {
-        // 2. Tidak ada tugas, TAPI adminGreeting ADA (berarti baru saja menyelesaikan) -> Ganti ke Teal
-        greetingMessage = "Anda Hebat dan Luar Biasa, tugas telah diselesaikan semua! Tetap semangat dan jangan lupa istirahat yang cukup, karena hari esok akan lebih menyenangkan.";
-        // === PERUBAHAN PALET WARNA ===
-        greetingClass = 'bg-teal-50 border-l-4 border-teal-500 text-teal-900'; // Sukses (Teal)
-        // === IKON BARU (Ceria) ===
-        greetingIconHtml = `
-          <svg class="h-6 w-6 text-teal-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256">
-            <path d="M234.5,114.38l-45.1,32.32L201.86,198a12,12,0,0,1-18.25,12.06L128,183.11l-55.61,26.91A12,12,0,0,1,53.79,198l12.46-51.26-45.1-32.36a12,12,0,0,1,6.54-21.37L79,88.14,103.22,39.52a12,12,0,0,1,21.56,0L149,88.14l51.36,4.87A12,12,0,0,1,234.5,114.38Z" opacity="0.4"></path>
-            <path d="M234.5,114.38l-45.1,32.32L201.86,198a12,12,0,0,1-18.25,12.06L128,183.11l-55.61,26.91A12,12,0,0,1,53.79,198l12.46-51.26-45.1-32.36a12,12,0,0,1,6.54-21.37L79,88.14,103.22,39.52a12,12,0,0,1,21.56,0L149,88.14l51.36,4.87A12,12,0,0,1,234.5,114.38Z"></path>
-          </svg>
-        `;
-      
-      } else {
-        // 3. Tidak ada tugas, dan tidak ada sapaan admin (default) -> Ganti dari Abu-abu ke Cyan
-        const now = new Date();
-        const hour = now.getHours();
-        let timeGreeting = "Selamat datang";
-        if (hour < 11) timeGreeting = "Selamat pagi";
-        else if (hour < 15) timeGreeting = "Selamat siang";
-        else if (hour < 19) timeGreeting = "Selamat sore";
-        else timeGreeting = "Selamat malam";
-        
-        greetingMessage = `${timeGreeting}, semoga dalam keadaan sehat dan kuat mental untuk melakukan pekerjaan hari ini.`;
-        // === PERUBAHAN PALET WARNA (Ini yang diminta user) ===
-        greetingClass = 'bg-cyan-50 border-l-4 border-cyan-500 text-cyan-900'; // Netral (Cyan)
-        // === IKON BARU (Ceria) ===
-        greetingIconHtml = `
-          <svg class="h-6 w-6 text-cyan-600 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256">
-            <path d="M128,56a72,72,0,1,0,72,72A72.08,72.08,0,0,0,128,56Zm0,128a56,56,0,1,1,56-56A56.06,56.06,0,0,1,128,184Z" opacity="0.4"></path>
-            <path d="M128,40a8,8,0,0,0,8-8V8a8,8,0,0,0-16,0V32A8,8,0,0,0,128,40ZM216,120h-24a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16Zm-40-72a8,8,0,0,0,5.66-2.34l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,176,40ZM80,40a8,8,0,0,0,5.66,13.66l16-16a8,8,0,1,0-11.32-11.32l-16,16A8,8,0,0,0,80,40ZM40,120H64a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16Zm45.66,90.34a8,8,0,0,0,11.32,0l16-16a8,8,0,0,0-11.32-11.32l-16,16A8,8,0,0,0,85.66,210.34ZM128,216a8,8,0,0,0-8,8v24a8,8,0,0,0,16,0V224A8,8,0,0,0,128,216Zm82.34-5.66a8,8,0,0,0-11.32,0l-16,16a8,8,0,0,0,11.32,11.32l16-16A8,8,0,0,0,210.34,210.34ZM128,72a56,56,0,1,0,56,56A56.06,56.06,0,0,0,128,72Zm0,96a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"></path>
-          </svg>
-        `;
-      }
-
-      // HTML untuk Kotak Sapaan
-      // === PERUBAHAN LAYOUT (Tambah flex, ikon) ===
-      const greetingBoxHtml = `
-        <div class="mb-6 p-5 rounded-lg shadow-md ${greetingClass} flex items-start gap-4">
-          <div class="flex-shrink-0 pt-0.5">
-            ${greetingIconHtml}
-          </div>
-          <div class="flex-1">
-            <p class="font-medium text-lg leading-relaxed">${greetingMessage}</p>
-          </div>
+        <!-- LOGIN PAGE -->
+        <div id="loginPage" class="p-8 h-screen flex flex-col justify-center">
+            <div class="text-center mb-10">
+                <div class="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-clipboard-list text-white text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">Report Pekerjaan</h1>
+                <p class="text-gray-500 text-sm">System v3.5</p>
+            </div>
+            <form id="loginForm" class="space-y-4">
+                <input type="text" id="username" class="w-full px-4 py-3 border rounded-lg" placeholder="Username" required>
+                <input type="password" id="password" class="w-full px-4 py-3 border rounded-lg" placeholder="Password" required>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">MASUK</button>
+            </form>
         </div>
-      `;
-      
-      // --- Render Tabel (HANYA JIKA ADA TUGAS) ---
-      let allTables = '';
-      if (hasTasks) {
-        const tasksByType = tasks.reduce((acc, task) => {
-          const type = task.taskType || 'Lainnya';
-          if (!acc[type]) {
-            acc[type] = [];
-          }
-          acc[type].push(task);
-          return acc;
-        }, {});
 
-        allTables = Object.keys(tasksByType).map(taskType => {
-          const tasksInGroup = tasksByType[taskType];
-          
-          let headerDesc = "Deskripsi";
-          if (taskType === "Packing") headerDesc = "SKU";
-          if (taskType === "Retur") headerDesc = "Jenis Retur";
-          
-          const rows = tasksInGroup.map(task => {
-            const currentHasil = state.userTaskResults[task.taskId] || task.hasil || '';
-            const isPendingApproval = task.status === 'Pending Approval';
-            const isRejected = task.status === 'Rejected'; 
-
-            let deskripsiTugas = task.description;
-            if (taskType === "Packing" && task.description.startsWith("Packing SKU: ")) {
-              deskripsiTugas = task.description.replace("Packing SKU: ", "");
-            }
-            if (taskType === "Retur" && task.description.startsWith("Retur Jenis: ")) {
-              deskripsiTugas = task.description.replace("Retur Jenis: ", "");
-            }
-
-            let statusHtml;
-            if (isPendingApproval) {
-              statusHtml = `<span class="text-sm font-medium text-yellow-600 bg-yellow-100 px-3 py-1.5 rounded-full">Menunggu ACC</span>`;
-            } else if (isRejected) {
-               statusHtml = `
-                  <button 
-                    data-task-id="${task.taskId}"
-                    data-target-qty="${task.quantity}"
-                    class="konfirmasi-tugas-btn bg-blue-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-blue-700 transition duration-200 text-sm">
-                    Kirim Ulang
-                  </button>
-                  <span class="text-xs text-red-600 block mt-1 font-medium">Ditolak</span>
-                `;
-            } else {
-               statusHtml = `
-                  <button 
-                    data-task-id="${task.taskId}"
-                    data-target-qty="${task.quantity}"
-                    class="konfirmasi-tugas-btn bg-emerald-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-emerald-700 transition duration-200 text-sm">
-                    Konfirmasi
-                  </button>
-               `;
-            }
-
-            return `
-              <tr class="hover:bg-gray-50 ${isRejected ? 'bg-red-50' : ''}">
-                <td class="px-4 py-3 text-sm text-gray-700 font-medium">${deskripsiTugas}</td>
-                <td class="px-4 py-3 text-sm text-gray-700 text-center">${task.quantity}</td>
-                <td class="px-4 py-3">
-                  <input 
-                    type="number" 
-                    value="${currentHasil}"
-                    data-task-id="${task.taskId}"
-                    class="task-hasil-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" 
-                    placeholder="0"
-                    min="0"
-                    ${isPendingApproval ? 'disabled' : ''} 
-                  >
-                </td>
-                <td class="px-4 py-3 text-center">
-                  ${statusHtml}
-                </td>
-              </tr>
-            `;
-          }).join('');
-
-          return `
-            <div class="mb-8">
-              <h3 class="text-2xl font-bold text-gray-900 mb-4">${taskType}</h3>
-              <div class="overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-200">
-                <table class="min-w-full divide-y divide-gray-200">
-                  <thead class="bg-gray-50">
-                    <tr>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">${headerDesc}</th>
-                      <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Target</th>
-                      <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hasil</th>
-                      <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
-                    ${rows}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          `;
-        }).join('');
-      } // --- Akhir dari if(hasTasks)
-
-      // --- Gabungkan HTML ---
-      return `
-        <div>
-          <div class="flex justify-between items-center mb-6">
-            <h2 class="text-3xl font-bold text-gray-900">Dashboard Tugas Harian</h2>
-          </div>
-          
-          <!-- Kotak Sapaan Dinamis Baru -->
-          ${greetingBoxHtml}
-          
-          <!-- Tabel Tugas (hanya render jika ada) -->
-          <div>
-            ${allTables}
-          </div>
-        </div>
-      `;
-    }
-    // --- AKHIR PERUBAHAN RENDER DASHBOARD USER ---
-
-
-    // --- Render Admin Dashboard ---
-    function renderAdminDashboardView(data) {
-      let stats = {
-        pending: 0,
-        pendingApproval: 0, 
-        completed: 0,
-        rejected: 0, // <-- STATS BARU
-        total: (data || []).length, // Tambah Pengecekan null/undefined
-        totalCompletedQuantity: 0, 
-        byType: {}
-      };
-      
-      let userStatsData = {}; 
-
-      (data || []).forEach(row => { // Tambah Pengecekan null/undefined
-        const status = row[7]; // PERBAIKAN: Status ada di indeks 7
-        const user = row[1];
-        
-        // PERBAIKAN: Standarkan tipe (misal: "Packing", "packing" -> "Packing")
-        let type = row[3] || 'Lainnya';
-        if (type.toLowerCase() === 'packing') type = 'Packing';
-        else if (type.toLowerCase() === 'retur') type = 'Retur';
-        else if (type.toLowerCase() === 'inbound') type = 'Inbound';
-        else if (type.toLowerCase() === 'perapian' || type.toLowerCase() === 'scan pick up') type = 'Scan Pick Up'; // DIUBAH
-        else if (type.toLowerCase() === 'urgent') type = 'Urgent';
-        else if (type.toLowerCase() === '5r dan lain-lain' || type.toLowerCase() === '5r') type = '5R dan Lain-lain'; // DITAMBAH
-
-        const description = row[4]; 
-        const targetQty = parseInt(row[5] || 0, 10); 
-        const hasilQty = parseInt(row[6] || 0, 10); // PERBAIKAN: HasilQty ada di indeks 6
-
-        if (status === 'Pending') stats.pending++;
-        if (status === 'Pending Approval') stats.pendingApproval++;
-        if (status === 'Rejected') stats.rejected++; // <-- HITUNG STATS BARU
-        if (status === 'Completed') {
-          stats.completed++;
-          stats.totalCompletedQuantity += hasilQty;
-        }
-        
-        if (!userStatsData[user]) {
-          userStatsData[user] = { taskCount: 0, totalQuantity: 0, tasks: [] };
-        }
-        userStatsData[user].taskCount++;
-        
-        if (status === 'Completed' || status === 'Pending Approval') {
-          userStatsData[user].totalQuantity += hasilQty;
-        }
-        
-        userStatsData[user].tasks.push({
-          description: description,
-          type: type,
-          target: targetQty,
-          hasil: hasilQty,
-          status: status
-        });
-        
-        stats.byType[type] = (stats.byType[type] || 0) + 1;
-      });
-      
-      state.adminUserStats = userStatsData;
-
-      const userStatsHtml = Object.keys(userStatsData).sort().map(user => {
-        const userData = userStatsData[user];
-        return `
-            <li class="flex justify-between items-center p-3 hover:bg-gray-50 rounded">
-              <div>
-                <span class="font-medium text-gray-700">${user}</span>
-                <span class="text-sm text-gray-500 block">${userData.taskCount} tugas</span>
-              </div>
-              <div class="text-right">
-                 <span class="text-gray-600 font-medium">Total: ${userData.totalQuantity} items</span>
-                 <button 
-                   data-username="${user}"
-                   class="user-details-btn text-sm text-blue-600 hover:text-blue-800 block font-medium">
-                   Lihat Detail
-                 </button>
-              </div>
-            </li>
-          `;
-      }).join('') || '<p class="text-gray-500 p-3">Belum ada data.</p>';
-      
-      const typeStats = Object.keys(stats.byType).map(type => `
-        <li class="flex justify-between items-center p-3 hover:bg-gray-50 rounded">
-          <span class="font-medium text-gray-700">${type}</span>
-          <span class="text-gray-500">${stats.byType[type]} tugas</span>
-        </li>
-      `).join('') || '<p class="text-gray-500 p-3">Belum ada data.</p>';
-
-      return `
-        <div>
-          <h2 class="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h2>
-          
-          <!-- Stats Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6"> <!-- DIUBAH JADI 5 KOLOM -->
-            <div class="bg-white p-5 rounded-xl shadow-lg border">
-              <h4 class="text-sm font-medium text-blue-700">Total Tugas</h4>
-              <p class="text-3xl font-bold text-blue-900">${stats.total}</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-lg border">
-              <h4 class="text-sm font-medium text-yellow-700">Pending</h4>
-              <p class="text-3xl font-bold text-yellow-900">${stats.pending}</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-lg border">
-              <h4 class="text-sm font-medium text-orange-700">Menunggu ACC</h4>
-              <p class="text-3xl font-bold text-orange-900">${stats.pendingApproval}</p>
-            </div>
-             <!-- KARTU BARU -->
-            <div class="bg-white p-5 rounded-xl shadow-lg border">
-              <h4 class="text-sm font-medium text-red-700">Ditolak</h4>
-              <p class="text-3xl font-bold text-red-900">${stats.rejected}</p>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-lg border">
-              <h4 class="text-sm font-medium text-emerald-700">Tugas Selesai</h4>
-              <p class="text-3xl font-bold text-emerald-900">${stats.completed}</p>
-            </div>
-          </div>
-          
-          <!-- Stats Lists -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-white p-5 rounded-xl shadow-lg border">
-              <h3 class="font-semibold text-gray-800 mb-3">Tugas per User</h3>
-              <ul class="divide-y divide-gray-200">${userStatsHtml}</ul>
-            </div>
-            <div class="bg-white p-5 rounded-xl shadow-lg border">
-              <h3 class="font-semibold text-gray-800 mb-3">Tugas per Tipe</h3>
-              <ul class="divide-y divide-gray-200">${typeStats}</ul>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- (REWRITE BESAR) Render Admin Beri Tugas ---
-    
-    // Helper 1: Render Pilihan Karyawan (Checkboxes)
-    function renderUserSelection(users, selectedUsers) {
-      if (users.length === 0) {
-        return '<p class="text-sm text-gray-500">Tidak ada karyawan ditemukan.</p>'; // DIUBAH
-      }
-      
-      return users.map(user => `
-        <label class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer">
-          <input 
-            type="checkbox"
-            value="${user}"
-            class="assign-user-checkbox h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-            ${selectedUsers.includes(user) ? 'checked' : ''}
-          >
-          <span class="text-gray-700 font-medium">${user}</span>
-        </label>
-      `).join('');
-    }
-
-    // Helper 2: Render 1 Baris Tugas (di dalam blok)
-    function renderAssignTaskRow(row, type, blockId) {
-      const rowId = row.id;
-      let fields = '';
-
-      if (type === 'Packing') {
-        fields = `
-          <td class="px-1 py-2 w-3/5">
-            <input type="text" data-block-id="${blockId}" data-row-id="${rowId}" data-field="sku" value="${row.sku || ''}" class="assign-task-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="SKU...">
-          </td>
-          <td class="px-1 py-2 w-1/5">
-            <input type="number" data-block-id="${blockId}" data-row-id="${rowId}" data-field="quantity" value="${row.quantity || 1}" min="1" class="assign-task-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-          </td>
-        `;
-      } else if (type === 'Retur') {
-        fields = `
-          <td class="px-1 py-2 w-3/5">
-            <select data-block-id="${blockId}" data-row-id="${rowId}" data-field="jenis" class="assign-task-select w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white">
-              <option value="Input" ${row.jenis === 'Input' ? 'selected' : ''}>Input</option>
-              <option value="Bongkar" ${row.jenis === 'Bongkar' ? 'selected' : ''}>Bongkar</option>
-              <option value="Repack" ${row.jenis === 'Repack' ? 'selected' : ''}>Repack</option>
-            </select>
-          </td>
-          <td class="px-1 py-2 w-1/5">
-            <input type="number" data-block-id="${blockId}" data-row-id="${rowId}" data-field="quantity" value="${row.quantity || 1}" min="1" class="assign-task-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-          </td>
-        `;
-      } else { // Inbound, Scan Pick Up, Urgent, 5R, Lainnya
-        fields = `
-          <td class="px-1 py-2 w-3/5">
-            <input type="text" data-block-id="${blockId}" data-row-id="${rowId}" data-field="description" value="${row.description || ''}" class="assign-task-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Deskripsi tugas...">
-          </td>
-          <td class="px-1 py-2 w-1/5">
-            <input type="number" data-block-id="${blockId}" data-row-id="${rowId}" data-field="quantity" value="${row.quantity || 1}" min="1" class="assign-task-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-          </td>
-        `;
-      }
-
-      return `
-        <tr id="row-${rowId}">
-          ${fields}
-          <td class="px-1 py-2 text-center w-1/5">
-            <button type="button" data-block-id="${blockId}" data-row-id="${rowId}" class="remove-assign-task-row p-1 text-red-500 hover:text-red-700">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M216,48H176V40a24,24,0,0,0-24-24H104A24,24,0,0,0,80,40v8H40a8,8,0,0,0,0,16h8V208a16,16,0,0,0,16,16H192a16,16,0,0,0,16-16V64h8a8,8,0,0,0,0-16ZM96,40a8,8,0,0,1,8-8h48a8,8,0,0,1,8,8v8H96Zm96,168H64V64H192Zm-80-104v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Zm48,0v64a8,8,0,0,1-16,0V104a8,8,0,0,1,16,0Z"></path></svg>
-            </button>
-          </td>
-        </tr>
-      `;
-    }
-
-    // Helper 3: Render 1 Blok Tipe Tugas
-    function renderAssignTaskBlock(block) {
-      let headers = '';
-      if (block.type === 'Packing') {
-        headers = `
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/5">SKU</th>
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Jumlah</th>
-          <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hapus</th>
-        `;
-      } else if (block.type === 'Retur') {
-        headers = `
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/5">Jenis</th>
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Jumlah</th>
-          <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hapus</th>
-        `;
-      } else {
-        headers = `
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/5">Deskripsi</th>
-          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Jumlah</th>
-          <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hapus</th>
-        `;
-      }
-      
-      const tableRows = block.rows.map(row => renderAssignTaskRow(row, block.type, block.id)).join('');
-
-      return `
-        <div class="mt-6 border border-gray-300 rounded-lg p-4 bg-white shadow-sm">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="text-xl font-bold text-gray-900">${block.type}</h3>
-            <button type="button" data-block-id="${block.id}" class="remove-task-block p-1 text-gray-400 hover:text-red-600">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"><path d="M208.49,191.51a12,12,0,0,1-17,17L128,145,64.49,208.49a12,12,0,0,1-17-17L111,128,47.51,64.49a12,12,0,0,1,17-17L128,111l46.49-46.49a12,12,0,0,1,17,17L145,128Z"></path></svg>
-            </button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full">
-              <thead class="bg-gray-50">
-                <tr>${headers}</tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200">${tableRows}</tbody>
-            </table>
-          </div>
-          <button type="button" data-block-id="${block.id}" class="add-assign-task-row mt-4 bg-blue-500 text-white font-medium py-1.5 px-3 rounded-lg shadow hover:bg-blue-600 transition duration-200 text-sm">
-            + Tambah Baris
-          </button>
-        </div>
-      `;
-    }
-
-    // Helper 4: Render View Utama "Beri Tugas"
-    // --- (DIUBAH UNTUK MENAMBAH TEXTAREA SAPAAN) ---
-    function renderAssignTaskView(users, assignState) {
-      
-      const userSelectionHtml = renderUserSelection(users, assignState.selectedUsers);
-      const taskBlocksHtml = assignState.taskBlocks.map(block => renderAssignTaskBlock(block)).join('');
-
-      return `
-        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl max-w-3xl mx-auto">
-          <h2 class="text-3xl font-bold text-gray-900 mb-6">Beri Tugas Baru</h2>
-          <form id="assign-task-form">
+        <!-- DASHBOARD PEKERJA -->
+        <div id="workerDashboard" class="hidden flex-1 flex flex-col bg-gray-50 relative">
             
-            <!-- 0. Pesan Sapaan (BARU) -->
-            <div class="mb-6">
-              <label for="admin-greeting-message" class="block text-lg font-medium text-gray-800 mb-2">0. Sapaan untuk Karyawan (Opsional)</label>
-              <textarea 
-                id="admin-greeting-message" 
-                rows="3"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Misal: Semangat hari ini karena urgent..."
-              ></textarea>
-              <p class="text-xs text-gray-500 mt-1">Sapaan ini akan muncul di dashboard user saat mereka menerima tugas ini.</p>
-            </div>
-
-            <!-- 1. Pemilihan Karyawan -->
-            <div class="mb-6">
-              <label class="block text-lg font-medium text-gray-800 mb-2">1. Pilih Karyawan</label>
-              <div id="assign-user-list" class="grid grid-cols-2 md:grid-cols-3 gap-2 border border-gray-300 rounded-lg p-4 max-h-48 overflow-y-auto bg-gray-50">
-                ${userSelectionHtml}
-              </div>
-            </div>
-
-            <!-- 2. Pemilihan Tipe Tugas -->
-            <div class="mb-4">
-              <label class="block text-lg font-medium text-gray-800 mb-2">2. Tambah Blok Tugas</label>
-              <div class="flex gap-4">
-                <!-- === PERUBAHAN DROPDOWN ADMIN === -->
-                <select id="add-task-type-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="Packing">Packing</option>
-                  <option value="Retur">Retur</option>
-                  <option value="Inbound">Inbound</option>
-                  <option value="Scan Pick Up">Scan Pick Up</option>
-                  <option value="Urgent">Urgent</option>
-                  <option value="5R dan Lain-lain">5R dan Lain-lain</option>
-                  <option value="Lainnya">Lainnya</option>
-                </select>
-                <!-- === AKHIR PERUBAHAN === -->
-                <button type="button" id="add-task-block-btn" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-blue-700 transition whitespace-nowrap">
-                  + Tambah Blok
-                </button>
-              </div>
-            </div>
-
-            <!-- 3. Daftar Blok Tugas -->
-            <div id="task-blocks-container">
-              ${taskBlocksHtml.length > 0 ? taskBlocksHtml : '<p id="no-task-block-msg" class="text-center text-gray-500 mt-8 py-4">Silakan tambah blok tugas.</p>'}
-            </div>
-            
-            <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg shadow-md hover:bg-emerald-700 transition duration-300 mt-8">
-              Kirim Semua Tugas ke Karyawan Terpilih
-            </button>
-          </form>
-        </div>
-      `;
-    }
-    // --- AKHIR PERUBAHAN RENDER BERI TUGAS ---
-
-    // --- Render View Admin (PERSETUJUAN) ---
-    function renderTaskApprovalView(tasks) {
-      let rows = '';
-      if (tasks.length === 0) {
-        rows = `
-          <tr>
-            <td colspan="6" class="text-center text-gray-500 py-10">
-              Tidak ada tugas yang menunggu persetujuan.
-            </td>
-          </tr>
-        `;
-      } else {
-        rows = tasks.map(row => {
-          const taskId = row[0];
-          const user = row[1];
-          const taskType = row[3]
-          const taskDesc = row[4];
-          const target = row[5];
-          const hasil = row[6]; // PERBAIKAN: HasilQty ada di indeks 6
-          
-          return `
-            <tr class="hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-800 font-medium">${user}</td>
-              <td class="px-4 py-3 text-sm text-gray-700">
-                <span class="font-bold">${taskType}</span>: ${taskDesc}
-              </td>
-              <td class="px-4 py-3 text-sm text-gray-700 text-center">${target}</td>
-              <td class="px-4 py-3"> <!-- Kolom Hasil Diubah -->
-                <input 
-                  type="number" 
-                  value="${hasil}"
-                  data-task-id="${taskId}"
-                  class="approval-hasil-input w-full px-2 py-1.5 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500" 
-                  placeholder="0"
-                  min="0"
-                >
-              </td>
-              <td class="px-4 py-3 text-center space-x-2 whitespace-nowrap"> <!-- Kolom Aksi Diubah -->
-                <button 
-                  data-task-id="${taskId}"
-                  class="approve-task-btn bg-emerald-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-emerald-700 transition duration-200 text-sm">
-                  Setujui
-                </button>
-                <button 
-                  data-task-id="${taskId}"
-                  class="reject-task-btn bg-red-600 text-white font-semibold py-1.5 px-3 rounded-lg shadow hover:bg-red-700 transition duration-200 text-sm">
-                  Tolak
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      }
-      
-      const bulkActionButtons = tasks.length > 0 ? `
-        <div class="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg flex flex-col sm:flex-row gap-3">
-          <p class="font-medium text-gray-700 flex-1">Aksi Massal:</p>
-          <button
-            id="approve-all-tasks-btn"
-            class="bg-emerald-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-emerald-700 transition duration-200 text-sm flex-grow">
-            Setujui Semua (${tasks.length})
-          </button>
-          <button
-            id="reject-all-tasks-btn"
-            class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow hover:bg-red-700 transition duration-200 text-sm flex-grow">
-            Tolak Semua (${tasks.length})
-          </button>
-        </div>
-      ` : '';
-
-      return `
-        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
-          <h2 class="text-3xl font-bold text-gray-900 mb-6">Persetujuan Tugas</h2>
-          
-          ${bulkActionButtons} <!-- Tombol Aksi Massal ditampilkan di sini -->
-          
-          <div class="overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-200">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Karyawan</th>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Tugas</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Target</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Hasil</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Aksi</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                ${rows}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      `;
-    }
-
-
-    // --- Render Tugas Mandiri ---
-    function renderPackingView(items) {
-      const rows = items.map((item, index) => `
-        <tr>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-            <input 
-              type="text" 
-              value="${item.sku || ''}"
-              data-task-type="packing" data-index="${index}" data-field="sku"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Masukkan SKU..."
-            />
-          </td>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-            <input 
-              type="number" 
-              value="${item.jumlah || ''}"
-              data-task-type="packing" data-index="${index}" data-field="jumlah"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              min="0"
-              placeholder="0"
-            />
-          </td>
-        </tr>
-      `).join('');
-
-      return `
-        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">Tugas Mandiri: Packing</h2>
-          <p class="text-gray-600 mb-6">Input pekerjaan mandiri (packing) yang sudah Anda kerjakan di sini untuk dikirim ke Admin.</p>
-          <div class="overflow-x-auto rounded-lg border">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/5">SKU</th>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Jumlah (Hasil)</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">${rows}</tbody>
-            </table>
-          </div>
-          <button data-task-type="packing" class="add-row-button mt-6 bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-blue-600 transition duration-200">
-            + Tambah Baris
-          </button>
-          <button data-task-type="packing" class="submit-mandiri-button mt-6 ml-4 bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg shadow hover:bg-emerald-700 transition duration-200">
-            Kirim untuk Persetujuan
-          </button>
-        </div>
-      `;
-    }
-    function renderReturView(items) {
-      const rows = items.map((item, index) => `
-        <tr>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-            <select 
-              data-task-type="retur" data-index="${index}" data-field="jenis"
-              class="task-input task-select w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-            >
-              <option value="Input" ${item.jenis === 'Input' ? 'selected' : ''}>Input</option>
-              <option value="Bongkar" ${item.jenis === 'Bongkar' ? 'selected' : ''}>Bongkar</option>
-              <option value="Repack" ${item.jenis === 'Repack' ? 'selected' : ''}>Repack</option>
-            </select>
-          </td>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-            <input 
-              type="number" 
-              value="${item.jumlah || ''}"
-              data-task-type="retur" data-index="${index}" data-field="jumlah"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              min="0"
-              placeholder="0"
-            />
-          </td>
-        </tr>
-      `).join('');
-
-      return `
-        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">Tugas Mandiri: Retur</h2>
-           <p class="text-gray-600 mb-6">Input pekerjaan mandiri (retur) yang sudah Anda kerjakan di sini.</p>
-          <div class="overflow-x-auto rounded-lg border">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/5">Jenis Pekerjaan</th>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Jumlah (Hasil)</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">${rows}</tbody>
-            </table>
-          </div>
-          <button data-task-type="retur" class="add-row-button mt-6 bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-blue-600 transition duration-200">
-            + Tambah Baris
-          </button>
-          <button data-task-type="retur" class="submit-mandiri-button mt-6 ml-4 bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg shadow hover:bg-emerald-700 transition duration-200">
-            Kirim untuk Persetujuan
-          </button>
-        </div>
-      `;
-    }
-    function renderGenericView(taskType, title, items) {
-      const rows = items.map((item, index) => `
-        <tr>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-            <input 
-              type="text" 
-              value="${item.tugas || ''}"
-              data-task-type="${taskType}" data-index="${index}" data-field="tugas"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Nama tugas..."
-            />
-          </td>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-            <input 
-              type="number" 
-              value="${item.keterangan || ''}"
-              data-task-type="${taskType}" data-index="${index}" data-field="keterangan"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="0"
-              min="0"
-            />
-          </td>
-        </tr>
-      `).join('');
-
-      return `
-        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">Tugas Mandiri: ${title}</h2>
-           <p class="text-gray-600 mb-6">Input pekerjaan mandiri (${taskType}) yang sudah Anda kerjakan di sini.</p>
-          <div class="overflow-x-auto rounded-lg border">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/5">Tugas</th>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Jumlah (Hasil)</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">${rows}</tbody>
-            </table>
-          </div>
-          <button data-task-type="${taskType}" class="add-row-button mt-6 bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-blue-600 transition duration-200">
-            + Tambah Baris
-          </button>
-          <button data-task-type="${taskType}" class="submit-mandiri-button mt-6 ml-4 bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg shadow hover:bg-emerald-700 transition duration-200">
-            Kirim untuk Persetujuan
-          </button>
-        </div>
-      `;
-    }
-
-    // --- FUNGSI BARU UNTUK SCAN PICK UP ---
-    function renderScanPickUpView(items) {
-      const rows = items.map((item, index) => `
-        <tr>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-            <input 
-              type="text" 
-              value="Scan Dispacth"
-              data-task-type="scanpickup" data-index="${index}" data-field="tugas"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-gray-100"
-              placeholder="Scan Dispacth"
-              disabled 
-            />
-          </td>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-            <input 
-              type="number" 
-              value="${item.jumlah || ''}"
-              data-task-type="scanpickup" data-index="${index}" data-field="jumlah"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              min="0"
-              placeholder="0"
-            />
-          </td>
-        </tr>
-      `).join('');
-
-      return `
-        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">Tugas Mandiri: Scan Pick Up</h2>
-          <p class="text-gray-600 mb-6">Input pekerjaan mandiri (Scan Pick Up) yang sudah Anda kerjakan di sini.</p>
-          <div class="overflow-x-auto rounded-lg border">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/5">Tugas</th>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Jumlah (Hasil)</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">${rows}</tbody>
-            </table>
-          </div>
-          <button data-task-type="scanpickup" class="add-row-button mt-6 bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-blue-600 transition duration-200">
-            + Tambah Baris
-          </button>
-          <button data-task-type="scanpickup" class="submit-mandiri-button mt-6 ml-4 bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg shadow hover:bg-emerald-700 transition duration-200">
-            Kirim untuk Persetujuan
-          </button>
-        </div>
-      `;
-    }
-    
-    // --- FUNGSI BARU UNTUK 5R ---
-    function render5RView(items) {
-      const rows = items.map((item, index) => `
-        <tr>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap w-2/5">
-            <select 
-              data-task-type="5r" data-index="${index}" data-field="jenis"
-              class="task-input task-select w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-            >
-              <option value="Kebersihan" ${item.jenis === 'Kebersihan' ? 'selected' : ''}>Kebersihan</option>
-              <option value="Perapian" ${item.jenis === 'Perapian' ? 'selected' : ''}>Perapian</option>
-              <option value="Lain-lain" ${item.jenis === 'Lain-lain' ? 'selected' : ''}>Lain-lain</option>
-            </select>
-          </td>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap w-2/5">
-            <input 
-              type="text" 
-              value="${item.keterangan || ''}"
-              data-task-type="5r" data-index="${index}" data-field="keterangan"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              placeholder="Keterangan..."
-            />
-          </td>
-          <td class="px-3 md:px-6 py-4 whitespace-nowrap w-1/5">
-            <input 
-              type="number" 
-              value="${item.jumlah || ''}"
-              data-task-type="5r" data-index="${index}" data-field="jumlah"
-              class="task-input w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-              min="0"
-              placeholder="0"
-            />
-          </td>
-        </tr>
-      `).join('');
-
-      return `
-        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">Tugas Mandiri: 5R dan Lain-lain</h2>
-           <p class="text-gray-600 mb-6">Input pekerjaan 5R atau tugas lainnya yang sudah Anda kerjakan di sini.</p>
-          <div class="overflow-x-auto rounded-lg border">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Jenis</th>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Keterangan</th>
-                  <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Jumlah</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">${rows}</tbody>
-            </table>
-          </div>
-          <button data-task-type="5r" class="add-row-button mt-6 bg-blue-500 text-white font-medium py-2 px-4 rounded-lg shadow hover:bg-blue-600 transition duration-200">
-            + Tambah Baris
-          </button>
-          <button data-task-type="5r" class="submit-mandiri-button mt-6 ml-4 bg-emerald-600 text-white font-bold py-2 px-4 rounded-lg shadow hover:bg-emerald-700 transition duration-200">
-            Kirim untuk Persetujuan
-          </button>
-        </div>
-      `;
-    }
-    
-    // --- Render Laporan (Hasil Pekerjaan) ---
-    // --- (DIUBAH) ---
-    function renderLaporanView(items, currentFilter) {
-      
-      // --- (BARU) Tombol Filter ---
-      const filterButtons = `
-        <div class="flex flex-wrap gap-2 mb-6">
-          <button 
-            data-filter="today" 
-            class="user-laporan-filter-btn px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${currentFilter === 'today' ? 'filter-btn-active' : 'filter-btn'}">
-            Hari Ini
-          </button>
-          <button 
-            data-filter="thisMonth" 
-            class="user-laporan-filter-btn px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${currentFilter === 'thisMonth' ? 'filter-btn-active' : 'filter-btn'}">
-            Bulan Ini
-          </button>
-          <button 
-            data-filter="last30days" 
-            class="user-laporan-filter-btn px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${currentFilter === 'last30days' ? 'filter-btn-active' : 'filter-btn'}">
-            30 Hari Terakhir
-          </button>
-        </div>
-      `;
-      
-      // --- (BARU) Logika Filter Data ---
-      const filteredItems = (items || []).filter(item => {
-        const completedDate = parseDate(item.completedAt); // item.completedAt harusnya sudah Date
-        if (!completedDate) return false; // Abaikan jika tidak ada tanggal
-
-        switch (currentFilter) {
-          case 'today':
-            return isToday(completedDate);
-          case 'thisMonth':
-            return isThisMonth(completedDate);
-          case 'last30days':
-          default:
-            return isLast30Days(completedDate);
-        }
-      });
-      
-      // --- Logika grouping (tetap sama) ---
-      const tasksByType = filteredItems.reduce((acc, task) => {
-        let type = task.type || 'Lainnya'; 
-        if (type.length > 0) {
-            type = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-        }
-        if (type.toLowerCase() === '5r') type = '5R dan Lain-lain';
-        if (type.toLowerCase() === 'scanpickup') type = 'Scan Pick Up';
-        
-        if (!acc[type]) {
-          acc[type] = [];
-        }
-        acc[type].push(task);
-        return acc;
-      }, {});
-
-      let content = '';
-      if (filteredItems.length === 0) {
-        content = `
-          <div class="bg-white p-6 rounded-xl shadow-lg border text-center">
-            <p class="text-gray-500">Belum ada pekerjaan yang diselesaikan untuk filter ini.</p>
-          </div>
-        `;
-      } else {
-        content = Object.keys(tasksByType).sort().map(taskType => {
-          const tasksInGroup = tasksByType[taskType];
-          const totalJumlah = tasksInGroup.reduce((sum, task) => sum + (parseInt(task.hasil, 10) || 0), 0); 
-          
-          const taskRows = tasksInGroup.map(item => {
-             let deskripsi = item.taskName || 'Tidak ada deskripsi';
-             
-             if (item.type && item.type.toLowerCase() === 'packing' && deskripsi.startsWith('Packing SKU: ')) {
-               deskripsi = deskripsi.replace('Packing SKU: ', '');
-             } else if (item.type && item.type.toLowerCase() === 'retur' && deskripsi.startsWith('Retur Jenis: ')) {
-               deskripsi = deskripsi.replace('Retur Jenis: ', '');
-             }
-             else if (item.type && item.type.toLowerCase() === '5r' && deskripsi.includes(' - ')) {
-               deskripsi = deskripsi.replace('5R: ', ''); 
-             }
-             else if (item.type && item.type.toLowerCase() === 'scanpickup' && deskripsi.startsWith('Scan Pick Up: ')) {
-               deskripsi = deskripsi.replace('Scan Pick Up: ', ''); 
-             }
-             
-             const jumlah = item.hasil || 0; 
-             
-             return `
-              <tr class="hover:bg-gray-50 border-b last:border-b-0">
-                <td class="px-4 py-3 text-sm text-gray-800">${deskripsi}</td>
-                <td class="px-4 py-3 text-sm text-blue-700 font-bold text-center">${jumlah}</td>
-              </tr>
-             `;
-          }).join('');
-
-          return `
-            <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-              <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
-                <h3 class="text-xl font-bold text-gray-800">${taskType}</h3>
-                <span class="text-sm font-semibold text-gray-600 bg-gray-200 px-3 py-1 rounded-full">Total: ${totalJumlah}</span>
-              </div>
-              <div class="overflow-x-auto">
-                <table class="min-w-full">
-                  <thead class="bg-white">
-                    <tr>
-                      <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-3/4">Tugas / Deskripsi</th>
-                      <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Jumlah</th>
-                    </tr>
-                  </thead>
-                  <tbody class="bg-white divide-y divide-gray-200">
-                    ${taskRows}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          `;
-        }).join('');
-      }
-
-      return `
-        <div class="max-w-4xl mx-auto">
-          <h2 class="text-3xl font-bold text-gray-900 mb-2">Laporan Pekerjaan Selesai</h2>
-          <p class="text-gray-600 mb-6">Laporan ini mencatat semua tugas (Harian & Mandiri) yang telah disetujui oleh Admin.</p>
-          
-          <!-- (BARU) Tombol Filter Dimasukkan di Sini -->
-          ${filterButtons}
-          
-          <div class="space-y-6">
-            ${content}
-          </div>
-        </div>
-      `;
-    }
-
-    // --- (FUNGSI BARU) Render Laporan Admin ---
-    // --- (DIUBAH) ---
-    function renderAdminLaporanView(completedTasks, userList, currentFilter, expandedUsers) {
-      
-      const userFilter = currentFilter.user;
-      const dateFilter = currentFilter.date;
-
-      // 1. Buat Pilihan Filter
-      const userOptions = userList.map(user => 
-        `<option value="${user}" ${userFilter === user ? 'selected' : ''}>${user}</option>`
-      ).join('');
-      
-      const dateFilterButtons = `
-        <div class="flex items-center gap-2 flex-wrap">
-          <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter Tanggal:</label>
-          <button data-filter="today" class="admin-laporan-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${dateFilter === 'today' ? 'filter-btn-active' : 'filter-btn'}">
-            Hari Ini
-          </button>
-          <button data-filter="thisMonth" class="admin-laporan-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${dateFilter === 'thisMonth' ? 'filter-btn-active' : 'filter-btn'}">
-            Bulan Ini
-          </button>
-          <button data-filter="last30days" class="admin-laporan-filter-btn px-3 py-1.5 rounded-lg text-sm font-medium transition duration-200 ${dateFilter === 'last30days' ? 'filter-btn-active' : 'filter-btn'}">
-            30 Hari Terakhir
-          </button>
-        </div>
-      `;
-
-      // 2. Filter Data
-      const filteredTasks = (completedTasks || []).filter(taskRow => {
-        // Filter User
-        const userMatch = (userFilter === 'all') || (taskRow[1] === userFilter); // Index 1 is username
-        if (!userMatch) return false;
-        
-        // Filter Tanggal
-        
-        // ================================================================
-        // === PERBAIKAN BUG YANG SAYA LAKUKAN ADA DI BARIS BERIKUT INI ===
-        // ================================================================
-        
-        // --- SEBELUMNYA (SALAH): taskRow[2] ---
-        // const completedDate = parseDate(taskRow[2]); 
-        
-        // --- SESUDAHNYA (BENAR): taskRow[9] ---
-        // Berdasarkan skrip GAS, 'CompletedAt' ada di indeks 9
-        const completedDate = parseDate(taskRow[9]); 
-        
-        // ================================================================
-        // === AKHIR PERBAIKAN ===
-        // ================================================================
-
-        if (!completedDate) {
-          // Jika tidak ada tanggal, loloskan filter (atau set false jika ingin ketat)
-          // console.warn("Task (Admin) tanpa tanggal valid:", taskRow[0]);
-          // Untuk amannya, kita loloskan jika filter "30 Hari Terakhir"
-          // return dateFilter === 'last30days'; 
-          // ATAU, lebih baik, kita anggap data tanpa tanggal sebagai data lama (false)
-          // Kecuali jika backend tidak mengirimnya. Mari kita coba log
-          if(taskRow[9]) console.warn("Admin task date invalid:", taskRow[9]); // Diubah ke [9]
-          // Karena kita tidak yakin, kita tidak bisa filter tanggal
-          // KITA HANYA BISA KEMBALIKAN true (menampilkan semua)
-          return true; // Tidak bisa filter tanggal, jadi loloskan saja
-        }
-
-        switch (dateFilter) {
-          case 'today':
-            return isToday(completedDate);
-          case 'thisMonth':
-            return isThisMonth(completedDate);
-          case 'last30days':
-          default:
-            return isLast30Days(completedDate);
-        }
-      });
-
-      // 3. Group by User
-      const tasksByUser = filteredTasks.reduce((acc, taskRow) => {
-        const username = taskRow[1]; // Index 1
-        const taskType = taskRow[3]; // Index 3
-        const description = taskRow[4]; // Index 4
-        const target = parseInt(taskRow[5] || 0, 10); // Index 5
-        const hasil = parseInt(taskRow[6] || 0, 10); // Index 6
-
-        if (!acc[username]) {
-          acc[username] = {
-            totalTasks: 0,
-            totalItems: 0,
-            tasks: []
-          };
-        }
-
-        acc[username].totalTasks++;
-        acc[username].totalItems += hasil;
-        acc[username].tasks.push({ type: taskType, description, target, hasil });
-
-        return acc;
-      }, {});
-
-      // 4. Buat Baris Tabel
-      let tableRows = '';
-      const sortedUsers = Object.keys(tasksByUser).sort();
-      
-      if (sortedUsers.length === 0) {
-        tableRows = `
-          <tr>
-            <td colspan="4" class="text-center text-gray-500 py-10">
-              Tidak ada data laporan selesai untuk filter ini.
-            </td>
-          </tr>
-        `;
-      } else {
-        sortedUsers.forEach(username => {
-          const data = tasksByUser[username];
-          const isExpanded = expandedUsers.includes(username);
-
-          // --- Baris Rekap (Ringkasan) ---
-          tableRows += `
-            <tr class="bg-white border-b hover:bg-gray-50">
-              <td class="px-4 py-3 text-sm text-gray-800 font-medium">${username}</td>
-              <td class="px-4 py-3 text-sm text-gray-700 text-center">${data.totalTasks}</td>
-              <td class="px-4 py-3 text-sm text-blue-700 font-bold text-center">${data.totalItems}</td>
-              <td class="px-4 py-3 text-center">
-                <button 
-                  data-username="${username}"
-                  class="admin-laporan-expand-btn p-1 rounded-full text-gray-500 hover:text-blue-600 hover:bg-blue-100">
-                  <svg class="h-5 w-5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-              </td>
-            </tr>
-          `;
-
-          // --- Baris Detail (Dropdown) ---
-          if (isExpanded) {
-            const detailRows = data.tasks.map(task => {
-              let deskripsiTugas = task.description;
-              // Membersihkan deskripsi
-              if (task.type === "Packing" && task.description.startsWith("Packing SKU: ")) {
-                deskripsiTugas = task.description.replace("Packing SKU: ", "");
-              }
-              if (task.type === "Retur" && task.description.startsWith("Retur Jenis: ")) {
-                deskripsiTugas = task.description.replace("Retur Jenis: ", "");
-              }
-              if (task.type === "Scan Pick Up" && task.description.startsWith("Scan Pick Up: ")) {
-                deskripsiTugas = task.description.replace("Scan Pick Up: ", "");
-              }
-              if (task.type === "5R dan Lain-lain" && task.description.startsWith("5R: ")) {
-                deskripsiTugas = task.description.replace("5R: ", "");
-              }
-              
-              return `
-                <tr class="border-t">
-                  <td class="px-4 py-2 text-sm text-gray-700 font-medium">${task.type}</td>
-                  <td class="px-4 py-2 text-sm text-gray-600">${deskripsiTugas}</td>
-                  <td class="px-4 py-2 text-sm text-gray-600 text-center">${task.target}</td>
-                  <td class="px-4 py-2 text-sm text-blue-600 font-medium text-center">${task.hasil}</td>
-                </tr>
-              `;
-            }).join('');
-
-            tableRows += `
-              <tr class="bg-gray-50">
-                <td colspan="4" class="p-0">
-                  <div class="p-4">
-                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Detail Pekerjaan untuk ${username}:</h4>
-                    <div class="overflow-x-auto rounded-lg border bg-white">
-                      <table class="min-w-full">
-                        <thead class="bg-gray-100">
-                          <tr>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Tipe</th>
-                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/4">Deskripsi</th>
-                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Target</th>
-                            <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Hasil</th>
-                          </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-200">
-                          ${detailRows}
-                        </tbody>
-                      </table>
+            <!-- HEADER (Fixed) -->
+            <div class="bg-blue-600 text-white p-6 pb-8 rounded-b-[2rem] shadow-xl z-10">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h2 id="workerName" class="text-xl font-bold">Nama</h2>
+                        <p id="workerRole" class="text-blue-100 text-xs bg-blue-700 inline-block px-2 py-1 rounded mt-1">Role</p>
                     </div>
-                  </div>
-                </td>
-              </tr>
-            `;
-          }
-        });
-      }
-
-
-      // 5. Gabungkan HTML
-      return `
-        <div class="bg-white p-4 md:p-8 rounded-2xl shadow-xl">
-          <div class="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
-            <h2 class="text-3xl font-bold text-gray-900">Laporan Pekerjaan (Admin)</h2>
-            
-            <!-- Filter Dropdown User -->
-            <div class="flex items-center gap-2">
-              <label for="admin-laporan-user-filter" class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter User:</label>
-              <select id="admin-laporan-user-filter" class="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white">
-                <option value="all" ${userFilter === 'all' ? 'selected' : ''}>Semua User</option>
-                ${userOptions}
-              </select>
+                    <button onclick="logout()" class="bg-blue-700/50 p-2 rounded-lg"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
             </div>
-          </div>
-          
-          <!-- (BARU) Filter Tanggal -->
-          <div class="mb-6 p-4 bg-gray-50 rounded-lg border">
-            ${dateFilterButtons}
-          </div>
-          
-          <!-- Peringatan jika filter tanggal tidak berfungsi -->
-          <div id="admin-date-filter-warning" class="hidden mb-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md">
-             <p class="font-bold">Catatan:</p>
-             <p>Filter tanggal mungkin tidak berfungsi jika data dari server tidak menyertakan tanggal selesai (kolom 10). Harap pastikan kolom tanggal ada di Google Sheet.</p>
-          </div>
-          
-          <!-- Tabel Laporan -->
-          <div class="overflow-x-auto bg-white rounded-lg shadow-lg border border-gray-200">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Karyawan</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Total Tugas</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Total Item Selesai</th>
-                  <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Detail</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                ${tableRows}
-              </tbody>
-            </table>
-          </div>
+
+            <!-- CONTENT AREA (Scrollable) -->
+            <div class="flex-1 overflow-y-auto pb-20 -mt-6 z-0 px-4">
+                
+                <!-- TAB 1: INPUT LAPORAN -->
+                <div id="worker-view-input" class="space-y-4 pt-4">
+                    <!-- Form Input -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mt-2">
+                        <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle text-blue-500"></i> Lapor Pekerjaan</h3>
+                        <form id="reportForm" class="space-y-4">
+                            <div>
+                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Pekerjaan</label>
+                                <select id="taskType" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mt-1 focus:ring-2 focus:ring-blue-100 outline-none"></select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Jumlah</label>
+                                <input type="number" id="taskQty" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mt-1 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="0" required>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Keterangan (Opsional)</label>
+                                <textarea id="taskNotes" rows="2" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mt-1 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="Contoh: Nomor Resi..."></textarea>
+                            </div>
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 mt-2 active:scale-95 transition">Kirim Laporan</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- TAB 2: RIWAYAT & FILTER -->
+                <div id="worker-view-history" class="hidden space-y-4 pt-4">
+                    
+                    <!-- Filter Controls -->
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mt-2">
+                        <div class="flex gap-2 mb-2">
+                            <select id="filterTypeWorker" class="flex-1 p-2 border rounded text-sm font-bold text-gray-600 bg-gray-50" onchange="handleFilterChange('Worker')">
+                                <option value="today">Hari Ini</option>
+                                <option value="week">Minggu Ini</option>
+                                <option value="month">Bulan Ini</option>
+                                <option value="custom">Custom Tanggal</option>
+                            </select>
+                            <button onclick="renderWorkerHistory()" class="bg-blue-600 text-white px-3 rounded text-sm"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div id="dateRangeWorker" class="hidden flex gap-2 animate-fade-in">
+                            <input type="date" id="startDateWorker" class="flex-1 p-1 border rounded text-xs">
+                            <input type="date" id="endDateWorker" class="flex-1 p-1 border rounded text-xs">
+                        </div>
+                    </div>
+
+                    <!-- Summary Card (Clickable) -->
+                    <div onclick="openDetailModalFromHistory()" class="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-5 rounded-xl shadow-lg cursor-pointer transform transition hover:scale-[1.02]">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-xs text-blue-100 mb-1">Total Poin (Periode Ini)</p>
+                                <h2 id="historyTotalPoints" class="text-3xl font-bold">0</h2>
+                            </div>
+                            <div class="bg-white/20 p-3 rounded-full">
+                                <i class="fas fa-list-ul text-2xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-[10px] mt-2 text-blue-100 flex items-center gap-1"><i class="fas fa-info-circle"></i> Klik untuk lihat rincian detail</p>
+                    </div>
+
+                    <!-- List Summary -->
+                    <div id="workerHistoryList" class="space-y-2 pb-10"></div>
+                </div>
+            </div>
+
+            <!-- BOTTOM NAVIGATION -->
+            <div class="bg-white border-t flex justify-around p-2 pb-4 shadow-[0_-5px_10px_rgba(0,0,0,0.05)] z-20">
+                <button onclick="switchWorkerTab('input')" id="btn-tab-input" class="flex-1 text-center py-2 nav-active">
+                    <i class="fas fa-edit text-xl mb-1 block"></i>
+                    <span class="text-xs font-bold">Input Laporan</span>
+                </button>
+                <button onclick="switchWorkerTab('history')" id="btn-tab-history" class="flex-1 text-center py-2 nav-inactive">
+                    <i class="fas fa-history text-xl mb-1 block"></i>
+                    <span class="text-xs font-bold">Riwayat</span>
+                </button>
+            </div>
         </div>
-      `;
-    }
-    // --- AKHIR FUNGSI BARU ---
 
+        <!-- DASHBOARD SPV -->
+        <div id="spvDashboard" class="hidden flex-1 flex flex-col bg-gray-50">
+            <div class="bg-slate-800 text-white p-4 shadow-lg sticky top-0 z-20">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="font-bold text-lg"><i class="fas fa-user-shield text-blue-400 mr-2"></i> Supervisor</h1>
+                    <button onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+                </div>
+                <div class="flex p-1 bg-slate-700 rounded-lg">
+                    <button onclick="switchSpvTab('validate')" id="tab-validate" class="flex-1 py-2 text-xs font-bold rounded bg-blue-500 text-white">Validasi</button>
+                    <button onclick="switchSpvTab('bulk')" id="tab-bulk" class="flex-1 py-2 text-xs font-bold rounded text-slate-300">Input Massal</button>
+                    <button onclick="switchSpvTab('team')" id="tab-team" class="flex-1 py-2 text-xs font-bold rounded text-slate-300">Laporan</button>
+                </div>
+            </div>
 
-    // --- Fungsi Aksi & Jaringan (Networking) ---
-    
-    function setState(newState) {
-      // --- (BARU) Cek filter state ---
-      if (newState.currentTaskView && newState.currentTaskView === state.currentTaskView) {
-         // Jika view sama, paksa render ulang dengan hapus cache
-         const oldView = getEl(`view-${state.currentTaskView}`);
-         if (oldView) oldView.remove();
-      }
-      else if (newState.userLaporanFilter && newState.userLaporanFilter !== state.userLaporanFilter) {
-         const oldView = getEl('view-laporan');
-         if (oldView) oldView.remove();
-      }
-      else if (newState.adminLaporanFilter) {
-         const oldView = getEl('view-adminLaporan');
-         if (oldView) oldView.remove();
-         // Gabungkan state filter lama dan baru
-         state.adminLaporanFilter = { ...state.adminLaporanFilter, ...newState.adminLaporanFilter };
-         delete newState.adminLaporanFilter; // Hapus agar tidak menimpa
-      }
-      // --- Akhir cek filter ---
-      
-      if (newState.tasks) {
-         Object.keys(newState.tasks).forEach(taskType => {
-           const oldView = getEl(`view-${taskType}`);
-           if (oldView) oldView.remove();
-         });
-      }
-      if (newState.assignTaskState) {
-         const oldView = getEl('view-assignTask');
-         if (oldView) oldView.remove();
-         state.assignTaskState = { ...state.assignTaskState, ...newState.assignTaskState };
-         delete newState.assignTaskState;
-      }
-      if (newState.adminLaporanExpandedUsers) {
-         const oldView = getEl('view-adminLaporan');
-         if (oldView) oldView.remove();
-      }
-      
-      state = { ...state, ...newState };
-      render();
-    }
-    
-    // --- Fungsi Notifikasi ---
-    function showNotification(message, isError = true) {
-      const notif = getEl('app-notification');
-      const notifMsg = getEl('app-notification-message');
-      
-      notifMsg.textContent = message;
-      notif.className = 'fixed top-24 right-8 z-[100] px-6 py-4 rounded-lg shadow-xl transition-all duration-300 max-w-sm'; 
-      
-      if (isError) {
-        notif.classList.add('bg-red-500', 'text-white');
-      } else {
-        notif.classList.add('bg-emerald-500', 'text-white');
-      }
-      
-      notif.classList.remove('hidden');
-      setTimeout(() => notif.classList.remove('opacity-0'), 10);
+            <div class="flex-1 overflow-y-auto p-4 pb-20">
+                
+                <!-- 1. VALIDASI -->
+                <div id="view-validate" class="space-y-4">
+                    <div class="flex justify-between items-center"><h2 class="text-sm font-bold text-gray-600">Perlu Validasi</h2><button onclick="loadData();" class="text-xs text-blue-600"><i class="fas fa-sync"></i> Refresh</button></div>
+                    <div id="validationList" class="space-y-3"></div>
+                </div>
 
-      if (notificationTimer) clearTimeout(notificationTimer);
-      notificationTimer = setTimeout(hideNotification, 3000);
-    }
+                <!-- 2. INPUT MASSAL -->
+                <div id="view-bulk" class="hidden space-y-4">
+                    <div class="bg-white p-4 rounded-xl shadow-sm">
+                        <h3 class="font-bold text-gray-800 mb-2 text-sm">Langkah 1: Pilih Pekerja</h3>
+                        <div id="bulkUserList" class="max-h-40 overflow-y-auto border rounded p-2 bg-gray-50 grid grid-cols-1 gap-2"></div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm">
+                        <h3 class="font-bold text-gray-800 mb-2 text-sm">Langkah 2: Detail Pekerjaan</h3>
+                        <div class="space-y-3">
+                            <select id="bulkTaskType" class="w-full p-2 border rounded text-sm bg-gray-50"></select>
+                            
+                            <input type="text" id="bulkTaskDesc" class="w-full p-2 border rounded text-sm" placeholder="Keterangan (Wajib)">
+                            <div class="flex gap-2">
+                                <div class="flex-1"><label class="text-[10px] text-gray-400 uppercase">Jumlah</label><input type="number" id="bulkQty" class="w-full p-2 border rounded text-sm" placeholder="0"></div>
+                                <div class="flex-1"><label class="text-[10px] text-gray-400 uppercase">Index Point</label><input type="number" id="bulkIndex" class="w-full p-2 border rounded text-sm" value="1.0" step="0.1"></div>
+                            </div>
+                        </div>
+                        <button onclick="submitBulk()" class="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-lg shadow hover:bg-green-700">SIMPAN UNTUK SEMUA PEKERJA</button>
+                    </div>
+                </div>
 
-    function hideNotification() {
-      const notif = getEl('app-notification');
-      notif.classList.add('opacity-0');
-      if (notificationTimer) clearTimeout(notificationTimer);
-      setTimeout(() => notif.classList.add('hidden'), 300);
-    }
-    
-    // --- Fungsi Toggle Password ---
-    function setupPasswordToggle(buttonId, inputId) {
-      const button = getEl(buttonId);
-      const input = getEl(inputId);
-      if (!button || !input) return; 
-      const eyeOpen = button.querySelector('.eye-icon-open');
-      const eyeClosed = button.querySelector('.eye-icon-closed');
+                <!-- 3. LAPORAN TIM -->
+                <div id="view-team" class="hidden space-y-4">
+                    <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex gap-2 mb-2">
+                            <select id="filterTypeSpv" class="flex-1 p-2 border rounded text-sm font-bold text-gray-600 bg-gray-50" onchange="handleFilterChange('Spv')">
+                                <option value="today">Hari Ini</option>
+                                <option value="week">Minggu Ini</option>
+                                <option value="month">Bulan Ini</option>
+                                <option value="custom">Custom Tanggal</option>
+                            </select>
+                            <button onclick="renderTeamStats()" class="bg-blue-600 text-white px-3 rounded text-sm"><i class="fas fa-search"></i></button>
+                        </div>
+                        <div id="dateRangeSpv" class="hidden flex gap-2 animate-fade-in">
+                            <input type="date" id="startDateSpv" class="flex-1 p-1 border rounded text-xs">
+                            <input type="date" id="endDateSpv" class="flex-1 p-1 border rounded text-xs">
+                        </div>
+                        <input type="text" id="filterNameSpv" class="w-full p-2 border rounded text-sm mt-2" placeholder="Cari Nama Karyawan..." oninput="renderTeamStats()">
+                    </div>
+                    
+                    <div id="teamStatsList" class="space-y-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-      button.addEventListener('click', () => {
-        if (input.type === 'password') {
-          input.type = 'text';
-          eyeOpen.classList.add('hidden');
-          eyeClosed.classList.remove('hidden');
-        } else {
-          input.type = 'password';
-          eyeOpen.classList.remove('hidden');
-          eyeClosed.classList.add('hidden');
-        }
-      });
-    }
+    <!-- MODAL 1: VALIDASI SPV -->
+    <div id="validateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
+                <h3 class="font-bold">Validasi Hasil Pekerja</h3>
+                <button onclick="closeModal('validateModal')" class="text-white opacity-70 hover:opacity-100"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="p-4 space-y-3">
+                <input type="hidden" id="val_id">
+                <div><label class="text-xs font-bold text-gray-500">Nama Pekerja</label><p id="val_name" class="font-bold text-gray-800"></p></div>
+                <div><label class="text-xs font-bold text-gray-500">Jenis Pekerjaan</label><p id="val_task" class="text-sm text-gray-700"></p></div>
+                <hr class="border-gray-100">
+                <div class="grid grid-cols-2 gap-3">
+                    <div><label class="text-xs font-bold text-blue-600">Jumlah</label><input type="number" id="val_qty" class="w-full p-2 border border-blue-200 rounded font-bold text-gray-700" oninput="calcTotal()"></div>
+                    <div><label class="text-xs font-bold text-blue-600">Index Point (x)</label><input type="number" id="val_index" class="w-full p-2 border border-blue-200 rounded font-bold text-gray-700" step="0.1" oninput="calcTotal()"></div>
+                </div>
+                <div><label class="text-xs font-bold text-gray-500">Keterangan / Notes</label><input type="text" id="val_notes" class="w-full p-2 border rounded text-sm bg-gray-50"></div>
+                <div class="bg-gray-100 p-3 rounded-lg text-center"><span class="text-xs text-gray-500">Total Point Akhir</span><p id="val_total" class="text-2xl font-bold text-blue-600">0</p></div>
+                <div class="flex gap-2 pt-2">
+                    <button onclick="submitValidation('reject')" class="flex-1 py-3 border border-red-200 text-red-600 rounded-lg font-bold text-sm hover:bg-red-50">TOLAK</button>
+                    <button onclick="submitValidation('approve')" class="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 shadow">SETUJU</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    // --- Handler Login ---
-    // --- (DIUBAH UNTUK MENGAMBIL adminGreeting) ---
-    async function handleLogin(event) {
-      event.preventDefault();
-      setState({ isLoading: true, loadingMessage: 'Logging in...', errorMessage: null });
-      hideNotification(); 
+    <!-- MODAL 2: DETAIL POIN -->
+    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md h-[80vh] flex flex-col overflow-hidden">
+            <div class="bg-slate-800 p-4 text-white flex justify-between items-center">
+                <div>
+                    <h3 class="font-bold text-lg" id="detailModalTitle">Rincian Poin</h3>
+                    <p class="text-xs text-slate-300" id="detailModalSubtitle">Periode: -</p>
+                </div>
+                <button onclick="closeModal('detailModal')" class="text-white opacity-70 hover:opacity-100"><i class="fas fa-times text-xl"></i></button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-4">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+                        <tr>
+                            <th class="px-2 py-2">Tgl</th>
+                            <th class="px-2 py-2">Pekerjaan</th>
+                            <th class="px-2 py-2 text-right">Hasil</th>
+                            <th class="px-2 py-2 text-right">Poin</th>
+                        </tr>
+                    </thead>
+                    <tbody id="detailModalBody" class="divide-y divide-gray-100"></tbody>
+                    <tfoot class="bg-blue-50 font-bold text-blue-700">
+                        <tr>
+                            <td colspan="3" class="px-2 py-3 text-right">TOTAL POIN:</td>
+                            <td class="px-2 py-3 text-right" id="detailModalTotal">0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div class="p-3 bg-gray-50 border-t text-center">
+                <button onclick="closeModal('detailModal')" class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg text-sm font-bold">Tutup</button>
+            </div>
+        </div>
+    </div>
 
-      const username = getEl('login-username').value;
-      const password = getEl('login-password').value;
-      
-      const url = GAS_WEB_APP_URL;
-      
-      const payload = {
-        action: 'login',
-        username: username,
-        password: password
-      };
+    <script>
+        // CONFIG - ADDED ROLE RETUR
+        const ROLES_CONFIG = {
+            'PACKER_INTI': { label: 'Packer (Inti)', targetMin: 220, targetExc: 250 },
+            'PACKER_FREE': { label: 'Packer (Freelance)', targetMin: 180, targetExc: 210 },
+            'PICKER': { label: 'Picker', targetMin: 380, targetExc: 450 },
+            'ADMIN': { label: 'Admin Support', targetMin: 60, targetExc: 120 },
+            'RETUR': { label: 'Tim Retur', targetMin: 220, targetExc: 250 },
+            'SPV': { label: 'Supervisor', targetMin: 0, targetExc: 0 }
+        };
 
-      try {
-        const response = await fetch(url, {
-          method: 'POST',
-          body: JSON.stringify(payload), // Menggunakan payload JSON
-          mode: 'cors'
+        const TASKS_CONFIG = {
+            'PACKING_STD': { label: 'Paket Standar', points: 1.0, role: ['PACKER_INTI', 'PACKER_FREE'] },
+            'PACKING_CPLX': { label: 'Paket Kompleks', points: 1.5, role: ['PACKER_INTI', 'PACKER_FREE'] },
+            'PACKING_OVER': { label: 'Paket Overload', points: 2.0, role: ['PACKER_INTI', 'PACKER_FREE'] },
+            'PICKING': { label: 'Picking Resi', points: 1, role: ['PICKER'] },
+            'SUPPORT': { label: 'Admin Support (Menit)', points: 1, role: ['ADMIN'] },
+            'INPUT_RETUR': { label: 'Input Retur', points: 1.0, role: ['RETUR'] },
+            'BONGKAR_RETUR': { label: 'Bongkar Retur', points: 1.0, role: ['RETUR'] },
+            'LAIN_LAIN': { label: 'Pekerjaan Tambahan', points: 1, role: ['ALL'] }
+        };
+
+        let currentUser = null;
+        let reportsData = [];
+        let usersData = [];
+        let filteredHistoryData = []; 
+
+        window.addEventListener('DOMContentLoaded', () => {
+            checkLogin();
+            setDefaultDates();
         });
 
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const result = await response.json();
-
-        if (result.status === 'success') {
-          const { username, role } = result.data;
-          
-          localStorage.setItem('dailyTaskUser', JSON.stringify({ username, password }));
-
-          let defaultView = role === 'admin' ? 'adminDashboard' : 'userDashboard';
-          const hashView = window.location.hash.substring(1);
-          
-          if (hashView) {
-             // === PERUBAHAN DI SINI ===
-             const validUserViews = ['userDashboard', 'packing', 'retur', 'inbound', 'scanpickup', 'urgent', '5r', 'laporan'];
-             const validAdminViews = ['adminDashboard', 'assignTask', 'taskApproval', 'adminLaporan'];
-             
-             if ((role === 'user' && validUserViews.includes(hashView)) || 
-                 (role === 'admin' && validAdminViews.includes(hashView))) 
-             {
-               defaultView = hashView;
-               
-               // === PERUBAHAN DI SINI ===
-               if (validUserViews.includes(hashView) && hashView !== 'userDashboard' && hashView !== 'laporan') {
-                   setTimeout(() => { 
-                     document.querySelectorAll('#submenu-tugas-mandiri').forEach(submenu => submenu.classList.remove('hidden'));
-                     document.querySelectorAll('#arrow-tugas-mandiri').forEach(arrow => arrow.classList.add('rotate-180'));
-                   }, 100);
-               }
-             }
-          }
-
-          // --- (BARU) Parse tanggal 'completedAt' saat login ---
-          let completedTasks = [];
-          if (result.data.completedTasks) {
-            completedTasks = result.data.completedTasks.map(t => {
-                // Pastikan 'completedAt' di-parse sebagai objek Date
-                return {...t, completedAt: parseDate(t.completedAt)} 
+        function setDefaultDates() {
+            const today = new Date().toISOString().split('T')[0];
+            ['Worker', 'Spv'].forEach(role => {
+                document.getElementById(`startDate${role}`).value = today;
+                document.getElementById(`endDate${role}`).value = today;
             });
-          }
-          // --- AKHIR PERUBAHAN ---
-
-          if (role === 'admin') {
-            setState({ isLoading: true, loadingMessage: 'Memuat data admin...' });
-            const adminData = await fetchAdminData();
-            setState({
-              userUsername: username,
-              userRole: 'admin',
-              currentView: 'app',
-              currentTaskView: defaultView,
-              adminDashboardData: adminData.adminDashboardData,
-              userList: adminData.userList,
-              isLoading: false,
-            });
-          } else {
-            setState({ isLoading: true, loadingMessage: 'Memuat data pengguna...' });
-            const userTasks = await fetchUserTasks(username); 
-            
-            // <-- PERUBAHAN DI SINI: Ambil adminGreeting dari hasil login
-            const adminGreeting = result.data.adminGreeting || null;
-            
-            setState({
-              userUsername: username,
-              userRole: 'user',
-              completedTasks: completedTasks, // --- (DIUBAH) Gunakan data yang sudah di-parse
-              currentView: 'app',
-              currentTaskView: defaultView,
-              assignedTasks: userTasks,
-              adminGreeting: adminGreeting, // <-- SIMPAN SAPAAN DI STATE
-              isLoading: false,
-            });
-          }
-        } else {
-          setState({ errorMessage: result.message, isLoading: false });
-          localStorage.removeItem('dailyTaskUser');
         }
-      } catch (error) {
-        console.error("Login fetch error:", error);
-        setState({ errorMessage: "Tidak dapat terhubung ke server.", isLoading: false });
-      }
-    }
 
-    // --- Handler Logout ---
-    function handleLogout() {
-      localStorage.removeItem('dailyTaskUser');
-      
-      try {
-        history.pushState(null, '', window.location.pathname);
-      } catch (e) {
-        console.warn("Gagal membersihkan URL (pushState error):", e.message);
-        window.location.hash = '';
-      }
-      
-      getEl('login-username').value = '';
-      getEl('login-password').value = '';
-      setState({
-        userUsername: null,
-        userRole: 'user',
-        currentView: 'login',
-        currentTaskView: 'userDashboard',
-        tasks: { packing: [], retur: [], inbound: [], scanpickup: [], urgent: [], '5r': [] }, // DIUBAH
-        completedTasks: [],
-        assignedTasks: [],
-        adminGreeting: null, // <-- RESET SAPAAN
-        adminDashboardData: [],
-        userList: [],
-        assignTaskState: { selectedUsers: [], taskBlocks: [] },
-        tasksForApproval: [],
-        adminLaporanData: [],
-        // --- (DIUBAH) Reset filter state ---
-        userLaporanFilter: 'last30days', 
-        adminLaporanFilter: { user: 'all', date: 'last30days' },
-        // --- AKHIR PERUBAHAN ---
-        adminLaporanExpandedUsers: [],
-      }); 
-      hideNotification();
-    }
+        async function callAPI(action, payload = {}) {
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            try {
+                const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(payload) });
+                const data = await res.json();
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                return data;
+            } catch (e) {
+                document.getElementById('loadingOverlay').classList.add('hidden');
+                Swal.fire('Error', 'Koneksi Bermasalah', 'error');
+                return null;
+            }
+        }
 
-    // --- Sync Data ---
-    // --- (DIUBAH UNTUK MENGAMBIL adminGreeting) ---
-    async function syncData() {
-      setState({ isLoading: true, loadingMessage: 'Sinkronisasi data...' });
-      hideNotification();
-      
-      const syncIcon = getEl('sync-button-icon'); 
-      if (syncIcon) syncIcon.classList.add('animate-spin'); 
-      
-      try { 
-        let newState = {};
-        if (state.userRole === 'admin') {
-          const adminData = await fetchAdminData();
-          newState.adminDashboardData = adminData.adminDashboardData;
-          newState.userList = adminData.userList;
-          newState.tasksForApproval = await fetchTasksForApproval(); 
-          if (state.currentTaskView === 'adminLaporan') {
-              newState.adminLaporanData = (adminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
-              // (BARU) Coba cek kolom tanggal saat sync
-              if (newState.adminLaporanData.length > 0) {
-                 const firstDate = parseDate(newState.adminLaporanData[0][9]); // DIUBAH KE [9]
-                 if (!firstDate) {
-                    const warningEl = getEl('admin-date-filter-warning');
-                    if(warningEl) warningEl.classList.remove('hidden');
-                 }
-              }
-          }
-        } else {
-          // USER ROLE
-          newState.assignedTasks = await fetchUserTasks(); // Ini sudah mengambil greeting
-          
-          // (BARU) Refresh laporan user juga
-          if (state.currentTaskView === 'laporan') {
-             const loginData = JSON.parse(localStorage.getItem('dailyTaskUser'));
-             // Ini adalah hack, idealnya ada endpoint 'getMyCompletedTasks'
-             // Untuk saat ini, kita harus login ulang secara virtual
-             if(loginData) {
-                const payload = { action: 'login', username: loginData.username, password: loginData.password };
-                const response = await fetch(GAS_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload), mode: 'cors' });
-                const result = await response.json();
-                if (result.status === 'success' && result.data.completedTasks) {
-                   newState.completedTasks = result.data.completedTasks.map(t => ({...t, completedAt: parseDate(t.completedAt)}));
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const res = await callAPI('login', { username: document.getElementById('username').value.trim(), password: document.getElementById('password').value.trim() });
+            if (res?.status === 'success') {
+                localStorage.setItem('kpi_user', JSON.stringify(res.user));
+                currentUser = res.user;
+                initApp();
+            } else Swal.fire('Gagal', 'Login Salah', 'error');
+        });
+
+        function checkLogin() {
+            const saved = localStorage.getItem('kpi_user');
+            if (saved) { currentUser = JSON.parse(saved); initApp(); }
+            else showPage('loginPage');
+        }
+
+        function logout() { localStorage.removeItem('kpi_user'); location.reload(); }
+
+        function showPage(id) {
+            ['loginPage', 'workerDashboard', 'spvDashboard'].forEach(p => document.getElementById(p).classList.add('hidden'));
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        async function initApp() {
+            if (currentUser.role === 'SPV') {
+                showPage('spvDashboard');
+                await loadData();
+                if(currentUser.role === 'SPV') {
+                    renderBulkUserList();
+                    renderBulkTaskOptions(); 
                 }
-             }
-          }
-          // <-- PERUBAHAN: newState.adminGreeting sudah diatur di dalam fetchUserTasks()
-        }
-        
-        newState.isLoading = false;
-        setState(newState); 
-        if (syncIcon) syncIcon.classList.remove('animate-spin'); 
-        showNotification("Data berhasil disinkronkan.", false);
-        
-      } catch (error) { 
-        console.error("Sync data error:", error);
-        setState({ isLoading: false });
-        if (syncIcon) syncIcon.classList.remove('animate-spin'); 
-        showNotification("Gagal sinkronisasi data.", true);
-      }
-    }
-
-    // --- Fetch Data (Admin) ---
-    async function fetchAdminData() {
-      try {
-        const dashPayload = { action: 'getAdminDashboard', username: state.userUsername };
-        const usersPayload = { action: 'getUsers' }; 
-
-        const [dashResponse, usersResponse] = await Promise.all([
-          fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(dashPayload),
-            mode: 'cors'
-          }),
-          fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(usersPayload),
-            mode: 'cors'
-          })
-        ]);
-        
-        const dashResult = await dashResponse.json();
-        const usersResult = await usersResponse.json();
-        
-        let adminData = {
-            adminDashboardData: [],
-            userList: []
-        };
-
-        if (dashResult.status === 'success') {
-          adminData.adminDashboardData = dashResult.data;
-        }
-        if (usersResult.status === 'success') {
-          adminData.userList = usersResult.data.users || []; 
-        }
-        
-        const oldDashView = getEl('view-adminDashboard');
-        if(oldDashView) oldDashView.remove();
-        const oldAssignView = getEl('view-assignTask');
-        if(oldAssignView) oldAssignView.remove();
-        const oldLaporanView = getEl('view-adminLaporan');
-        if(oldLaporanView) oldLaporanView.remove();
-        
-        return adminData; 
-
-      } catch (err) {
-        showNotification("Gagal memuat data admin: " + err.message, true);
-        return { adminDashboardData: [], userList: [] }; 
-      }
-    }
-
-    // --- Fetch Data (User) ---
-    // --- (DIUBAH UNTUK MENGAMBIL adminGreeting) ---
-    async function fetchUserTasks(username = null) { 
-      try {
-        const currentUsername = username || state.userUsername;
-        const payload = { action: 'getMyTasks', username: currentUsername };
-        const response = await fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            mode: 'cors'
-        });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          const oldView = getEl('view-userDashboard');
-          if(oldView) oldView.remove();
-          
-          // <-- PERUBAHAN: Set state sapaan di sini
-          // Cek jika kita SINKRONISASI (state.userUsername sudah ada)
-          if (state.userUsername) {
-            setState({ adminGreeting: result.data.adminGreeting || null });
-          }
-          
-          return result.data.tasks; // Kembalikan hanya tasks
-        } else {
-          throw new Error(result.message);
-        }
-      } catch (err) {
-        showNotification("Gagal memuat tugas harian: " + err.message, true);
-        return []; 
-      }
-    }
-
-    // --- Fetch data untuk persetujuan Admin ---
-    async function fetchTasksForApproval() {
-      try {
-        const payload = { action: 'getTasksForApproval', username: state.userUsername };
-        const response = await fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            mode: 'cors'
-        });
-        const result = await response.json();
-        
-        if (result.status === 'success') {
-          const oldView = getEl('view-taskApproval');
-          if(oldView) oldView.remove();
-          return result.data; 
-        } else {
-          throw new Error(result.message);
-        }
-      } catch (err) {
-        showNotification("Gagal memuat data persetujuan: " + err.message, true);
-        return []; 
-      }
-    }
-
-
-    // --- Logika klik sidebar ---
-    function handleSidebarClick(event) {
-      const button = event.target.closest('.sidebar-button');
-      if (button) {
-        const view = button.dataset.view;
-        navigateToView(view); 
-      }
-    }
-
-    // --- (REFAKTOR) FUNGSI NAVIGASI ---
-    async function navigateToView(view, fromPopState = false) { 
-      if (!view) return; 
-      
-      closeMobileSidebar();
-      hideUserDetailsModal(); 
-
-      if (!fromPopState) {
-        const currentHash = window.location.hash.substring(1);
-        if (view !== state.currentTaskView || view !== currentHash) {
-           const newState = { view: view };
-           const url = `#${view}`; 
-           try {
-             history.pushState(newState, '', url);
-           } catch (e) {
-             console.error("History pushState failed", e);
-           }
-        }
-      }
-      
-      setState({ isLoading: true, loadingMessage: 'Memuat data...' });
-      
-      let newState = { currentTaskView: view }; 
-
-      try {
-        if (view === 'assignTask') {
-          const adminData = await fetchAdminData();
-          newState.userList = adminData.userList;
-
-          const newBlockId = crypto.randomUUID();
-          const newRowId = crypto.randomUUID();
-          newState.assignTaskState = {
-              selectedUsers: [],
-              taskBlocks: [
-                  { id: newBlockId, type: 'Packing', rows: [{id: newRowId, sku: '', quantity: 1}] }
-              ]
-          };
-        } 
-        else if (view === 'adminDashboard') {
-          const adminData = await fetchAdminData();
-          newState.adminDashboardData = adminData.adminDashboardData;
-          newState.userList = adminData.userList;
-        }
-        else if (view === 'adminLaporan') {
-          const adminData = await fetchAdminData();
-          newState.adminDashboardData = adminData.adminDashboardData; 
-          newState.userList = adminData.userList;
-          newState.adminLaporanData = (adminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
-          // --- (DIUBAH) Reset filter saat navigasi ---
-          newState.adminLaporanFilter = { user: 'all', date: 'last30days' }; 
-          newState.adminLaporanExpandedUsers = []; 
-        }
-        else if (view === 'taskApproval') {
-          newState.tasksForApproval = await fetchTasksForApproval();
-        }
-        else if (view === 'userDashboard') {
-          newState.assignedTasks = await fetchUserTasks();
-          // Sapaan sudah di-set di dalam fetchUserTasks()
-        }
-        // --- (BARU) Reset filter saat navigasi ke laporan ---
-        else if (view === 'laporan') {
-            newState.userLaporanFilter = 'last30days';
-            // Data completedTasks sudah ada di state, tidak perlu fetch
-        }
-        // === PERUBAHAN DI SINI ===
-        else if (['packing', 'retur', 'inbound', 'scanpickup', 'urgent', '5r'].includes(view)) {
-           newState.tasks = { 
-             ...state.tasks, 
-             [view]: [] 
-           };
-        }
-        // === AKHIR PERUBAHAN ===
-      
-      } catch (error) {
-          console.error("Error navigating to view:", error);
-          showNotification("Gagal memuat data untuk halaman ini.", true);
-      }
-
-      newState.isLoading = false; 
-      setState(newState); 
-      
-      // (BARU) Cek Peringatan Tanggal Admin setelah render
-      if (view === 'adminLaporan') {
-         setTimeout(() => {
-            if (state.adminLaporanData.length > 0) {
-                 const firstDate = parseDate(state.adminLaporanData[0][9]); // DIUBAH KE [9]
-                 if (!firstDate && state.adminLaporanData[0][9]) { // Jika ada data di kolom 9 tapi tidak valid
-                    const warningEl = getEl('admin-date-filter-warning');
-                    if(warningEl) warningEl.classList.remove('hidden');
-                 }
-              }
-         }, 100);
-      }
-    }
-
-
-    // --- Logika klik Konten Utama ---
-    function handleViewContainerClick(event) {
-      const target = event.target;
-      const button = target.closest('button');
-      if (!button) return; 
-      
-      // --- (BARU) Handle Klik Filter ---
-      if (button.classList.contains('user-laporan-filter-btn')) {
-        const filter = button.dataset.filter;
-        setState({ userLaporanFilter: filter });
-        return;
-      }
-      if (button.classList.contains('admin-laporan-filter-btn')) {
-        const filter = button.dataset.filter;
-        // Gunakan object assign untuk update nested state
-        setState({ adminLaporanFilter: { ...state.adminLaporanFilter, date: filter } });
-        return;
-      }
-      // --- AKHIR FILTER ---
-
-      if (button.classList.contains('admin-laporan-expand-btn')) {
-        const username = button.dataset.username;
-        let newExpandedList = [...state.adminLaporanExpandedUsers];
-        
-        if (newExpandedList.includes(username)) {
-          newExpandedList = newExpandedList.filter(u => u !== username);
-        } else {
-          newExpandedList.push(username);
-        }
-        
-        setState({ adminLaporanExpandedUsers: newExpandedList });
-        return; 
-      }
-
-      if (button.classList.contains('submit-mandiri-button')) {
-        const taskType = button.dataset.taskType;
-        handleSubmitMandiriTasks(taskType);
-      }
-      if (button.classList.contains('add-row-button')) {
-        const taskType = button.dataset.taskType;
-        handleAddRow(taskType);
-      }
-      if (button.classList.contains('konfirmasi-tugas-btn')) {
-        const taskId = button.dataset.taskId;
-        const targetQty = parseInt(button.dataset.targetQty, 10);
-        const hasilQtyStr = state.userTaskResults[taskId] || '0';
-        const hasilQty = parseInt(hasilQtyStr, 10);
-
-        if (isNaN(hasilQty) || hasilQty < 0) {
-          showNotification("Input 'Hasil' tidak valid. Harap isi angka.", true);
-          return;
-        }
-        handleSubmitTaskForApproval(taskId, hasilQty, targetQty);
-      }
-      
-      const blockId = button.dataset.blockId;
-      const rowId = button.dataset.rowId;
-
-      if (button.id === 'add-task-block-btn') {
-        const newType = getEl('add-task-type-select').value;
-        const newBlockId = crypto.randomUUID();
-        const newRowId = crypto.randomUUID();
-        let newRow;
-        
-        if (newType === 'Packing') {
-          newRow = { id: newRowId, sku: '', quantity: 1 };
-        } else if (newType === 'Retur') {
-          newRow = { id: newRowId, jenis: 'Input', quantity: 1 };
-        } else {
-          newRow = { id: newRowId, description: '', quantity: 1 };
-        }
-        const newBlock = { id: newBlockId, type: newType, rows: [newRow] };
-        setState({
-          assignTaskState: {
-            taskBlocks: [...state.assignTaskState.taskBlocks, newBlock]
-          }
-        });
-        const noTaskMsg = getEl('no-task-block-msg');
-        if (noTaskMsg) noTaskMsg.classList.add('hidden');
-      }
-      else if (button.classList.contains('remove-task-block') && blockId) {
-        const newBlocks = state.assignTaskState.taskBlocks.filter(b => b.id !== blockId);
-        setState({ assignTaskState: { taskBlocks: newBlocks } });
-      }
-      else if (button.classList.contains('add-assign-task-row') && blockId) {
-        const newRowId = crypto.randomUUID();
-        let newRow;
-        const blockType = state.assignTaskState.taskBlocks.find(b => b.id === blockId).type;
-
-        if (blockType === 'Packing') {
-          newRow = { id: newRowId, sku: '', quantity: 1 };
-        } else if (blockType === 'Retur') {
-          newRow = { id: newRowId, jenis: 'Input', quantity: 1 };
-        } else {
-          newRow = { id: newRowId, description: '', quantity: 1 };
-        }
-        
-        const newBlocks = state.assignTaskState.taskBlocks.map(block => {
-          if (block.id === blockId) {
-            return { ...block, rows: [...block.rows, newRow] };
-          }
-          return block;
-        });
-        setState({ assignTaskState: { taskBlocks: newBlocks } });
-      }
-      else if (button.classList.contains('remove-assign-task-row') && blockId && rowId) {
-        const newBlocks = state.assignTaskState.taskBlocks.map(block => {
-          if (block.id === blockId) {
-            const newRows = block.rows.filter(r => r.id !== rowId);
-            if (newRows.length === 0) {
-              const newRowId = crypto.randomUUID();
-              if (block.type === 'Packing') {
-                newRows.push({ id: newRowId, sku: '', quantity: 1 });
-              } else if (block.type === 'Retur') {
-                newRows.push({ id: newRowId, jenis: 'Input', quantity: 1 });
-              } else {
-                newRows.push({ id: newRowId, description: '', quantity: 1 });
-              }
+                renderSpvView();
+            } else {
+                showPage('workerDashboard');
+                document.getElementById('workerName').textContent = currentUser.name;
+                document.getElementById('workerRole').textContent = ROLES_CONFIG[currentUser.role]?.label || currentUser.role;
+                renderTaskOptions();
+                await loadData();
+                renderWorkerHistory();    
             }
-            return { ...block, rows: newRows };
-          }
-          return block;
-        });
-        setState({ assignTaskState: { taskBlocks: newBlocks } });
-      }
+        }
 
-      if (button.classList.contains('approve-task-btn')) {
-        const taskId = button.dataset.taskId;
-        const inputEl = document.querySelector(`.approval-hasil-input[data-task-id="${taskId}"]`);
-        let hasilQty = null;
-        if (inputEl) {
-          hasilQty = parseInt(inputEl.value, 10);
+        async function loadData() {
+            const res = await callAPI('get_reports');
+            if (res?.status === 'success') {
+                reportsData = res.reports;
+                usersData = res.users;
+            }
         }
-        if (isNaN(hasilQty) || hasilQty < 0) {
-          showNotification("Nilai 'Hasil' tidak valid.", true);
-          return; 
+
+        // --- FILTER LOGIC ---
+        function handleFilterChange(role) {
+            const type = document.getElementById(`filterType${role}`).value;
+            const rangeDiv = document.getElementById(`dateRange${role}`);
+            if (type === 'custom') rangeDiv.classList.remove('hidden');
+            else rangeDiv.classList.add('hidden');
         }
-        handleApproveTask(taskId, hasilQty); 
-      }
-      else if (button.classList.contains('reject-task-btn')) {
-        const taskId = button.dataset.taskId;
-        handleRejectTask(taskId);
-      }
-      else if (button.id === 'approve-all-tasks-btn') {
-        handleApproveAllTasks();
-      }
-      else if (button.id === 'reject-all-tasks-btn') {
-        handleRejectAllTasks();
-      }
-      
-      if (button.classList.contains('user-details-btn')) {
-        const username = button.dataset.username;
-        showUserDetailsModal(username);
-      }
-    }
-    
-    // --- Logika Input ---
-    function handleViewContainerInput(event) {
-      const target = event.target;
-      
-      if (target.classList.contains('task-input')) {
-        const { taskType, index, field } = target.dataset;
-        // Jangan update state jika input disabled
-        if (target.disabled) return; 
-        
-        const value = (target.type === 'number' && target.value !== '') ? Number(target.value) : target.value;
-        const newItems = [...state.tasks[taskType]];
-        if (newItems[index]) {
-            newItems[index][field] = value;
-            state.tasks[taskType] = newItems; 
+
+        function getDateRange(role) {
+            const type = document.getElementById(`filterType${role}`).value;
+            const today = new Date();
+            let start = new Date(today);
+            let end = new Date(today);
+
+            if (type === 'week') {
+                const day = today.getDay() || 7; 
+                if (day !== 1) start.setHours(-24 * (day - 1)); 
+                end.setHours(24 * (7 - day));
+            } else if (type === 'month') {
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+                end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            } else if (type === 'custom') {
+                start = new Date(document.getElementById(`startDate${role}`).value);
+                end = new Date(document.getElementById(`endDate${role}`).value);
+            }
+            
+            start.setHours(0,0,0,0);
+            end.setHours(23,59,59,999);
+            return { start, end };
         }
-      }
-      if (target.classList.contains('task-select')) {
-         const { taskType, index, field } = target.dataset;
-         const newItems = [...state.tasks[taskType]];
-         if (newItems[index]) {
-            newItems[index][field] = target.value;
-            state.tasks[taskType] = newItems;
-         }
-      }
-      
-      const blockId = target.dataset.blockId;
-      const rowId = target.dataset.rowId;
-      const field = target.dataset.field;
-      if (target.classList.contains('assign-task-input') && blockId && rowId && field) {
-        const newBlocks = state.assignTaskState.taskBlocks.map(block => {
-          if (block.id === blockId) {
-            const newRows = block.rows.map(row => {
-              if (row.id === rowId) {
-                return { ...row, [field]: target.value };
-              }
-              return row;
+
+        // --- WORKER FUNCTIONS ---
+        function switchWorkerTab(tab) {
+            document.getElementById('worker-view-input').classList.add('hidden');
+            document.getElementById('worker-view-history').classList.add('hidden');
+            document.getElementById('btn-tab-input').className = "flex-1 text-center py-2 nav-inactive";
+            document.getElementById('btn-tab-history').className = "flex-1 text-center py-2 nav-inactive";
+            document.getElementById(`worker-view-${tab}`).classList.remove('hidden');
+            document.getElementById(`btn-tab-${tab}`).className = "flex-1 text-center py-2 nav-active";
+            if(tab === 'history') renderWorkerHistory();
+        }
+
+        function renderTaskOptions() {
+            const sel = document.getElementById('taskType');
+            sel.innerHTML = '';
+            Object.entries(TASKS_CONFIG).forEach(([k, v]) => {
+                if (v.role.includes(currentUser.role) || v.role.includes('ALL')) sel.innerHTML += `<option value="${k}">${v.label}</option>`;
             });
-            return { ...block, rows: newRows };
-          }
-          return block;
-        });
-        state.assignTaskState.taskBlocks = newBlocks;
-      }
-
-      if (target.classList.contains('task-hasil-input')) {
-        const taskId = target.dataset.taskId;
-        const value = target.value;
-        state.userTaskResults[taskId] = value;
-      }
-    }
-    
-    // --- Logika Ganti Pilihan (Change) ---
-    function handleViewContainerChange(event) {
-      const target = event.target;
-      
-      // --- (DIUBAH) Handle filter user admin ---
-      if (target.id === 'admin-laporan-user-filter') {
-        setState({ 
-          adminLaporanFilter: { ...state.adminLaporanFilter, user: target.value },
-          adminLaporanExpandedUsers: [] // Reset expand saat ganti user
-        });
-        return;
-      }
-      
-      if (target.classList.contains('assign-user-checkbox')) {
-        const user = target.value;
-        const isChecked = target.checked;
-        let newSelectedUsers = [...state.assignTaskState.selectedUsers];
-        if (isChecked) {
-          if (!newSelectedUsers.includes(user)) {
-            newSelectedUsers.push(user);
-          }
-        } else {
-          newSelectedUsers = newSelectedUsers.filter(u => u !== user);
         }
-        state.assignTaskState.selectedUsers = newSelectedUsers;
-        return; 
-      }
-      
-      const blockId = target.dataset.blockId;
-      const rowId = target.dataset.rowId;
-      const field = target.dataset.field;
-      if (target.classList.contains('assign-task-select') && blockId && rowId && field) {
-        const newBlocks = state.assignTaskState.taskBlocks.map(block => {
-          if (block.id === blockId) {
-            const newRows = block.rows.map(row => {
-              if (row.id === rowId) {
-                return { ...row, [field]: target.value };
-              }
-              return row;
+
+        document.getElementById('reportForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const type = document.getElementById('taskType').value;
+            const qty = document.getElementById('taskQty').value;
+            const notes = document.getElementById('taskNotes').value;
+            const taskInfo = TASKS_CONFIG[type];
+            const index = 1;
+            const total = qty * index * taskInfo.points;
+
+            const payload = {
+                name: currentUser.name, role: currentUser.role,
+                type: type, qty: qty, indexPoint: index, totalPoints: total,
+                status: 'pending', taskLabel: taskInfo.label, notes: notes
+            };
+
+            const res = await callAPI('add_report', payload);
+            if(res?.status === 'success') {
+                Swal.fire('Sukses', 'Laporan terkirim', 'success');
+                document.getElementById('taskQty').value = '';
+                document.getElementById('taskNotes').value = '';
+                await loadData(); 
+            }
+        });
+
+        function renderWorkerHistory() {
+            const { start, end } = getDateRange('Worker');
+            const list = document.getElementById('workerHistoryList');
+            list.innerHTML = '';
+            
+            filteredHistoryData = reportsData.filter(r => {
+                const d = new Date(r.timestamp);
+                return r.name === currentUser.name && d >= start && d <= end;
+            }).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            const totalPeriod = filteredHistoryData.filter(r=>r.status === 'approved').reduce((sum, r) => sum + Number(r.total_points), 0);
+            document.getElementById('historyTotalPoints').textContent = totalPeriod.toFixed(1);
+
+            if (filteredHistoryData.length === 0) {
+                list.innerHTML = '<div class="text-center text-gray-400 py-10">Tidak ada laporan pada periode ini</div>';
+                return;
+            }
+
+            filteredHistoryData.forEach(r => {
+                const color = r.status === 'approved' ? 'text-green-600 bg-green-50' : r.status === 'pending' ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
+                const time = r.timestamp.substring(0, 10);
+                list.innerHTML += `
+                    <div class="bg-white p-3 rounded-lg border flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-sm text-gray-700">${r.task_label}</p>
+                            <p class="text-[10px] text-gray-400">${time} • ${r.qty} unit ${r.notes ? `(${r.notes})` : ''}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="block font-bold text-blue-600 text-sm">${Number(r.total_points).toFixed(1)} pts</span>
+                            <span class="text-[10px] px-2 rounded ${color}">${r.status}</span>
+                        </div>
+                    </div>
+                `;
             });
-            return { ...block, rows: newRows };
-          }
-          return block;
-        });
-        state.assignTaskState.taskBlocks = newBlocks;
-      }
-    }
-    
-    // --- Logika Submit Form ---
-    // --- (DIUBAH UNTUK MENGAMBIL adminGreeting) ---
-    function handleViewContainerSubmit(event) {
-      event.preventDefault();
-      const target = event.target;
-      
-      if (target.id === 'assign-task-form') {
-        // <-- PERUBAHAN: Ambil nilai sapaan
-        const greetingMessage = getEl('admin-greeting-message').value || null;
-        
-        const selectedUsers = state.assignTaskState.selectedUsers;
-        const taskBlocks = state.assignTaskState.taskBlocks;
-        
-        if (selectedUsers.length === 0) {
-          showNotification("Harap pilih minimal satu karyawan.", true);
-          return;
         }
-        if (taskBlocks.length === 0) {
-          showNotification("Harap tambahkan minimal satu blok tugas.", true);
-          return;
+
+        function openDetailModalFromHistory() {
+            if(filteredHistoryData.length === 0) return Swal.fire('Info', 'Tidak ada data untuk ditampilkan', 'info');
+            openDetailModal(currentUser.name, filteredHistoryData);
         }
-        
-        let isValid = true;
-        let errorMsg = "";
-        
-        for (const block of taskBlocks) {
-          for (const row of block.rows) {
-            const qty = parseInt(row.quantity, 10);
-            if (isNaN(qty) || qty <= 0) {
-              isValid = false;
-              errorMsg = `Jumlah tidak valid di blok ${block.type}.`;
-              break;
+
+        function openDetailModal(title, data) {
+            document.getElementById('detailModalTitle').textContent = `Rincian: ${title}`;
+            const { start, end } = getDateRange(currentUser.role === 'SPV' ? 'Spv' : 'Worker');
+            document.getElementById('detailModalSubtitle').textContent = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+            
+            const tbody = document.getElementById('detailModalBody');
+            tbody.innerHTML = '';
+            let grandTotal = 0;
+
+            const sorted = [...data].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            sorted.forEach(r => {
+                const pts = Number(r.total_points);
+                if(r.status === 'approved') grandTotal += pts;
+                const statusIcon = r.status === 'approved' ? '<i class="fas fa-check text-green-500"></i>' : r.status === 'pending' ? '<i class="fas fa-clock text-yellow-500"></i>' : '<i class="fas fa-times text-red-500"></i>';
+                tbody.innerHTML += `
+                    <tr class="bg-white border-b">
+                        <td class="px-2 py-2 text-gray-600 whitespace-nowrap">${r.timestamp.substring(5,10)}</td>
+                        <td class="px-2 py-2">
+                            <div class="font-medium text-gray-800">${r.task_label}</div>
+                            <div class="text-[10px] text-gray-400">${r.notes || '-'}</div>
+                        </td>
+                        <td class="px-2 py-2 text-right">
+                            <div class="text-gray-600">${r.qty}</div>
+                            <div class="text-[9px] text-blue-400">Idx: ${r.index_point}</div>
+                        </td>
+                        <td class="px-2 py-2 text-right font-bold ${r.status === 'approved' ? 'text-blue-600' : 'text-gray-400'}">
+                            ${pts.toFixed(1)} ${statusIcon}
+                        </td>
+                    </tr>
+                `;
+            });
+            document.getElementById('detailModalTotal').textContent = grandTotal.toFixed(1);
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        // --- SPV FUNCTIONS ---
+        function switchSpvTab(tab) {
+            ['validate', 'bulk', 'team'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.replace('bg-blue-500', 'text-slate-300');
+                document.getElementById(`tab-${t}`).classList.remove('text-white');
+            });
+            document.getElementById(`view-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('bg-blue-500', 'text-white');
+            document.getElementById(`tab-${tab}`).classList.remove('text-slate-300');
+            
+            if(tab === 'validate') renderSpvView();
+            if(tab === 'team') renderTeamStats();
+        }
+
+        function renderSpvView() {
+            const list = document.getElementById('validationList');
+            const pending = reportsData.filter(r => r.status === 'pending');
+            list.innerHTML = '';
+            
+            if(pending.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-10">Tidak ada data pending</div>'; return; }
+
+            pending.forEach(r => {
+                list.innerHTML += `
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-400 cursor-pointer hover:bg-gray-50 transition"
+                        onclick='openValidationModal(${JSON.stringify(r)})'>
+                        <div class="flex justify-between items-start">
+                            <span class="font-bold text-gray-800">${r.name}</span>
+                            <span class="text-xs bg-gray-200 px-2 rounded">${r.role}</span>
+                        </div>
+                        <p class="text-sm text-blue-600 font-bold mt-1">${r.task_label}</p>
+                        <p class="text-xs text-gray-500">Input: ${r.qty} Qty • Note: ${r.notes}</p>
+                        <div class="mt-2 text-right text-xs font-bold text-blue-500">Klik untuk Validasi ></div>
+                    </div>
+                `;
+            });
+        }
+
+        function openValidationModal(data) {
+            document.getElementById('val_id').value = data.id;
+            document.getElementById('val_name').textContent = data.name;
+            document.getElementById('val_task').textContent = data.task_label;
+            document.getElementById('val_qty').value = data.qty;
+            document.getElementById('val_index').value = data.index_point || 1;
+            document.getElementById('val_notes').value = data.notes;
+            calcTotal(); 
+            document.getElementById('validateModal').classList.remove('hidden');
+        }
+
+        function calcTotal() {
+            const id = document.getElementById('val_id').value;
+            const r = reportsData.find(item => item.id == id);
+            const basePoint = TASKS_CONFIG[r.task_type]?.points || 1;
+            
+            const qty = parseFloat(document.getElementById('val_qty').value) || 0;
+            const index = parseFloat(document.getElementById('val_index').value) || 0;
+            const total = qty * index * basePoint;
+            document.getElementById('val_total').textContent = total.toFixed(1);
+        }
+
+        async function submitValidation(action) {
+            const id = document.getElementById('val_id').value;
+            if (action === 'reject') {
+                if(!confirm('Yakin TOLAK? Data akan dihapus permanen.')) return;
+                await callAPI('delete_report', { id });
+            } else {
+                const qty = document.getElementById('val_qty').value;
+                const index = document.getElementById('val_index').value;
+                const notes = document.getElementById('val_notes').value;
+                const total = document.getElementById('val_total').textContent;
+                await callAPI('validate_report', { id, qty, indexPoint: index, totalPoints: total, notes });
             }
-            if (block.type === 'Packing' && !row.sku) {
-              isValid = false;
-              errorMsg = `SKU kosong di blok ${block.type}.`;
-              break;
+            closeModal('validateModal');
+            await loadData();
+            renderSpvView();
+        }
+
+        function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
+
+        // --- SPV BULK (AUTO GENERATED OPTIONS) ---
+        function renderBulkUserList() {
+            const container = document.getElementById('bulkUserList');
+            container.innerHTML = '';
+            usersData.filter(u => u.role !== 'SPV').forEach(u => {
+                container.innerHTML += `
+                    <label class="checkbox-wrapper flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                        <input type="checkbox" value="${u.name}" class="hidden peer" data-role="${u.role}">
+                        <div class="w-5 h-5 border-2 border-gray-300 rounded mr-3 flex items-center justify-center peer-checked:bg-blue-500 peer-checked:border-blue-500">
+                            <i class="fas fa-check text-white text-xs hidden"></i>
+                        </div>
+                        <div class="flex-1">
+                            <div class="font-bold text-sm text-gray-700">${u.name}</div>
+                            <div class="text-xs text-gray-400">${u.role}</div>
+                        </div>
+                    </label>
+                `;
+            });
+        }
+
+        function renderBulkTaskOptions() {
+            const sel = document.getElementById('bulkTaskType');
+            sel.innerHTML = '';
+            Object.entries(TASKS_CONFIG).forEach(([k, v]) => {
+                // Tampilkan semua pekerjaan untuk SPV
+                sel.innerHTML += `<option value="${k}">${v.label}</option>`;
+            });
+        }
+
+        async function submitBulk() {
+            const checkboxes = document.querySelectorAll('#bulkUserList input:checked');
+            if (checkboxes.length === 0) return Swal.fire('Error', 'Pilih minimal 1 pekerja', 'warning');
+            const type = document.getElementById('bulkTaskType').value;
+            const desc = document.getElementById('bulkTaskDesc').value;
+            const qty = parseFloat(document.getElementById('bulkQty').value) || 0;
+            const index = parseFloat(document.getElementById('bulkIndex').value) || 1;
+            if (!desc) return Swal.fire('Error', 'Isi Keterangan Pekerjaan', 'warning');
+            
+            const taskInfo = TASKS_CONFIG[type];
+            const total = qty * index * taskInfo.points;
+            const payload = Array.from(checkboxes).map(cb => ({
+                name: cb.value, role: cb.dataset.role, type: type, qty: qty, indexPoint: index, totalPoints: total,
+                status: 'approved', taskLabel: taskInfo.label, notes: desc
+            }));
+            const res = await callAPI('add_report', payload);
+            if (res?.status === 'success') {
+                Swal.fire('Sukses', `Data disimpan`, 'success');
+                document.querySelectorAll('#bulkUserList input').forEach(c => c.checked = false);
+                document.getElementById('bulkTaskDesc').value = '';
+                document.getElementById('bulkQty').value = '';
+                await loadData();
             }
-            if (!['Packing', 'Retur'].includes(block.type) && !row.description) {
-              isValid = false;
-              errorMsg = `Deskripsi kosong di blok ${block.type}.`;
-              break;
-            }
-          }
-          if (!isValid) break;
-        }
-        
-        if (!isValid) {
-          showNotification(errorMsg, true);
-          return;
-        } else {
-          // <-- PERUBAHAN: Kirim sapaan ke fungsi handler
-          handleAssignMegaBatchTasks(selectedUsers, taskBlocks, greetingMessage);
-        }
-      }
-    }
-
-    // --- Fungsi tambah baris Tugas Mandiri ---
-    function handleAddRow(taskType) {
-      let newItem;
-      switch (taskType) {
-        case 'packing': newItem = { sku: '', jumlah: '' }; break;
-        case 'retur': newItem = { jenis: 'Input', jumlah: '' }; break;
-        // === PERUBAHAN DI SINI ===
-        case 'scanpickup': newItem = { tugas: 'Scan Dispacth', jumlah: '' }; break;
-        case '5r': newItem = { jenis: 'Kebersihan', keterangan: '', jumlah: '' }; break;
-        // === AKHIR PERUBAHAN ===
-        default: newItem = { tugas: '', keterangan: '' }; break; // Untuk Inbound, Urgent
-      }
-      const newItems = [...state.tasks[taskType], newItem];
-      
-      setState({ 
-        tasks: { 
-          ...state.tasks, 
-          [taskType]: newItems 
-        } 
-      });
-    }
-
-
-    // --- Handler Aksi (Admin & User) ---
-    
-    // Fungsi untuk kirim BANYAK tugas (Admin)
-    // --- (DIUBAH UNTUK MENGIRIM adminGreeting) ---
-    async function handleAssignMegaBatchTasks(users, blocks, greetingMessage) {
-      setState({ isLoading: true, loadingMessage: 'Memberi tugas...' });
-      
-      const cleanBlocks = blocks.map(block => ({
-        type: block.type,
-        rows: block.rows.map(row => {
-          if (block.type === 'Packing') return { sku: row.sku, quantity: row.quantity };
-          if (block.type === 'Retur') return { jenis: row.jenis, quantity: row.quantity };
-          // Blok 'else' ini akan menangani Inbound, Scan Pick Up, Urgent, 5R, Lainnya
-          return { description: row.description, quantity: row.quantity };
-        })
-      }));
-      
-      const payload = {
-        action: 'assignMegaBatchTasks',
-        username: state.userUsername,
-        users: users,
-        taskBlocks: cleanBlocks,
-        greetingMessage: greetingMessage // <-- DATA BARU DIKIRIM
-      };
-      
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload), 
-          mode: 'cors'
-        });
-        const result = await response.json();
-        if (result.status !== 'success') throw new Error(result.message);
-        
-        setState({ isLoading: false });
-        showNotification(result.message, false); 
-        
-        const newBlockId = crypto.randomUUID();
-        const newRowId = crypto.randomUUID();
-        setState({
-          assignTaskState: {
-            selectedUsers: [],
-            taskBlocks: [
-              { id: newBlockId, type: 'Packing', rows: [{id: newRowId, sku: '', quantity: 1}] }
-            ]
-          }
-        });
-        
-        // <-- PERUBAHAN: Kosongkan textarea sapaan setelah berhasil
-        const greetingTextarea = getEl('admin-greeting-message');
-        if (greetingTextarea) greetingTextarea.value = '';
-        
-        fetchAdminData();
-
-      } catch (error) {
-        showNotification(`Gagal memberi tugas: ${error.message}`, true);
-        setState({ isLoading: false });
-      }
-    }
-    
-    // Fungsi untuk submit TUGAS HARIAN (dari tabel)
-    async function handleSubmitTaskForApproval(taskId, hasilQty, targetQty) { 
-      setState({ isLoading: true, loadingMessage: 'Mengirim hasil...' });
-      hideNotification();
-      const payload = {
-        action: 'submitTaskForApproval',
-        username: state.userUsername,
-        taskId: taskId,
-        hasilQty: hasilQty
-      };
-
-       try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload), 
-          mode: 'cors'
-        });
-        const result = await response.json();
-        if (result.status !== 'success') throw new Error(result.message);
-        
-        delete state.userTaskResults[taskId];
-        
-        const newTasks = await fetchUserTasks(); // Ini akan auto-refresh sapaan
-        setState({ 
-          isLoading: false,
-          assignedTasks: newTasks 
-          // adminGreeting akan di-update oleh fetchUserTasks()
-        });
-        showNotification(result.message, false); 
-
-      } catch (error) {
-        showNotification(`Gagal mengirim hasil: ${error.message}`, true);
-        setState({ isLoading: false });
-      }
-    }
-
-    // Kirim TUGAS MANDIRI untuk persetujuan
-    async function handleSubmitMandiriTasks(taskType) {
-      const items = state.tasks[taskType];
-      
-      // === PERUBAHAN LOGIKA VALIDASI ===
-      const validItems = items.filter(item => {
-         if (taskType === 'packing') return item.sku && (item.jumlah || 0) > 0;
-         if (taskType === 'retur') return item.jenis && (item.jumlah || 0) > 0;
-         if (taskType === 'scanpickup') return item.tugas === 'Scan Dispacth' && (item.jumlah || 0) > 0;
-         if (taskType === '5r') return item.jenis && (item.jumlah || 0) > 0; // Keterangan opsional
-         // Default untuk inbound, urgent
-         return item.tugas && (item.keterangan || 0) > 0; 
-      });
-      // === AKHIR PERUBAHAN ===
-
-      if (validItems.length === 0) {
-        showNotification("Tidak ada data valid untuk dikirim. Harap isi semua field yang diperlukan dan Jumlah/Hasil > 0.", true);
-        return;
-      }
-      
-      setState({ isLoading: true, loadingMessage: 'Mengirim tugas mandiri...' });
-      hideNotification();
-      
-      // Data yang dikirim ke backend (items: validItems) sudah berisi field yang benar
-      // '5r' akan mengirim: {jenis, keterangan, jumlah}
-      // 'scanpickup' akan mengirim: {tugas: "Scan Dispacth", jumlah}
-      const payload = {
-        action: 'submitMandiriTasks',
-        username: state.userUsername,
-        taskType: taskType,
-        items: validItems
-      };
-
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload), 
-          mode: 'cors'
-        });
-        const result = await response.json();
-        if (result.status !== 'success') throw new Error(result.message);
-        
-        setState({ isLoading: false });
-        showNotification(result.message, false); 
-        
-        setState({ 
-          tasks: { 
-            ...state.tasks, 
-            [taskType]: [] 
-          } 
-        });
-
-      } catch (error) {
-        showNotification(`Gagal mengirim tugas mandiri: ${error.message}`, true);
-        setState({ isLoading: false });
-      }
-    }
-
-    // Admin menyetujui tugas (DIEDIT)
-    async function handleApproveTask(taskId, hasilQty) { 
-      setState({ isLoading: true, loadingMessage: 'Menyetujui tugas...' });
-      hideNotification();
-      const payload = {
-        action: 'approveTask',
-        username: state.userUsername,
-        taskId: taskId,
-        hasilQty: hasilQty
-      };
-
-       try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload), 
-          mode: 'cors'
-        });
-        const result = await response.json();
-        if (result.status !== 'success') throw new Error(result.message);
-        
-        const newTasksForApproval = await fetchTasksForApproval();
-        const newAdminData = await fetchAdminData();
-
-        let newState = { 
-          isLoading: false,
-          tasksForApproval: newTasksForApproval,
-          adminDashboardData: newAdminData.adminDashboardData,
-          userList: newAdminData.userList
-        };
-
-        if (state.currentTaskView === 'adminLaporan') {
-            newState.adminLaporanData = (newAdminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
         }
 
-        setState(newState);
-        showNotification(result.message, false); 
-        
-      } catch (error) {
-        showNotification(`Gagal menyetujui: ${error.message}`, true);
-        setState({ isLoading: false });
-      }
-    }
+        function renderTeamStats() {
+            const { start, end } = getDateRange('Spv');
+            const search = document.getElementById('filterNameSpv').value.toLowerCase();
+            const list = document.getElementById('teamStatsList');
+            list.innerHTML = '';
 
-    // Admin menolak tugas (FUNGSI BARU)
-    async function handleRejectTask(taskId) {
-      setState({ isLoading: true, loadingMessage: 'Menolak tugas...' });
-      hideNotification();
-      const payload = {
-        action: 'rejectTask',
-        username: state.userUsername,
-        taskId: taskId
-      };
+            const stats = {};
+            usersData.filter(u => u.role !== 'SPV').forEach(u => {
+                stats[u.name] = { points: 0, items: 0, role: u.role, reports: [] };
+            });
 
-       try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload), 
-          mode: 'cors'
-        });
-        const result = await response.json();
-        if (result.status !== 'success') throw new Error(result.message);
-        
-        const newTasksForApproval = await fetchTasksForApproval();
-        const newAdminData = await fetchAdminData();
+            reportsData.forEach(r => {
+                const d = new Date(r.timestamp);
+                if (d >= start && d <= end) {
+                    if(!stats[r.name]) stats[r.name] = { points: 0, items: 0, role: r.role, reports: [] };
+                    stats[r.name].reports.push(r); 
+                    if(r.status === 'approved') {
+                        stats[r.name].points += Number(r.total_points);
+                        stats[r.name].items += Number(r.qty);
+                    }
+                }
+            });
 
-        let newState = { 
-          isLoading: false,
-          tasksForApproval: newTasksForApproval,
-          adminDashboardData: newAdminData.adminDashboardData,
-          userList: newAdminData.userList
-        };
-
-        if (state.currentTaskView === 'adminLaporan') {
-            newState.adminLaporanData = (newAdminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
-        }
-        
-        setState(newState);
-        showNotification(result.message, false); // "Tugas ditolak."
-        
-      } catch (error) {
-        showNotification(`Gagal menolak: ${error.message}`, true);
-        setState({ isLoading: false });
-      }
-    }
-    
-    // Admin menyetujui SEMUA tugas
-    async function handleApproveAllTasks() {
-      setState({ isLoading: true, loadingMessage: 'Menyetujui semua tugas...' });
-      hideNotification();
-      
-      const tasksToApprove = [];
-      let allValid = true;
-      
-      for (const taskRow of state.tasksForApproval) {
-        const taskId = taskRow[0];
-        const inputEl = document.querySelector(`.approval-hasil-input[data-task-id="${taskId}"]`);
-        let hasilQty = -1;
-        
-        if (inputEl) {
-           hasilQty = parseInt(inputEl.value, 10);
-        }
-        
-        if (isNaN(hasilQty) || hasilQty < 0) {
-           allValid = false;
-           break;
-        }
-        
-        tasksToApprove.push({ taskId: taskId, hasilQty: hasilQty });
-      }
-      
-      if (!allValid) {
-        showNotification("Satu atau lebih nilai 'Hasil' tidak valid. Harap periksa kembali.", true);
-        setState({ isLoading: false });
-        return;
-      }
-
-      const payload = {
-        action: 'approveBatchTasks',
-        username: state.userUsername,
-        tasks: tasksToApprove
-      };
-
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          mode: 'cors'
-        });
-        const result = await response.json();
-        if (result.status !== 'success') throw new Error(result.message);
-        
-        const newTasksForApproval = await fetchTasksForApproval();
-        const newAdminData = await fetchAdminData();
-
-        let newState = { 
-          isLoading: false,
-          tasksForApproval: newTasksForApproval,
-          adminDashboardData: newAdminData.adminDashboardData,
-          userList: newAdminData.userList
-        };
-
-        if (state.currentTaskView === 'adminLaporan') {
-            newState.adminLaporanData = (newAdminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
-        }
-        
-        setState(newState);
-        showNotification(result.message, false); 
-      } catch (error) {
-        showNotification(`Gagal menyetujui semua: ${error.message}`, true);
-        setState({ isLoading: false });
-      }
-    }
-
-    // Admin menolak SEMUA tugas
-    async function handleRejectAllTasks() {
-      setState({ isLoading: true, loadingMessage: 'Menolak semua tugas...' });
-      hideNotification();
-      
-      const allTaskIds = state.tasksForApproval.map(taskRow => taskRow[0]);
-
-      const payload = {
-        action: 'rejectBatchTasks',
-        username: state.userUsername,
-        taskIds: allTaskIds
-      };
-
-      try {
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          body: JSON.stringify(payload),
-          mode: 'cors'
-        });
-        const result = await response.json();
-        if (result.status !== 'success') throw new Error(result.message);
-        
-        const newTasksForApproval = await fetchTasksForApproval();
-        const newAdminData = await fetchAdminData();
-
-        let newState = { 
-          isLoading: false,
-          tasksForApproval: newTasksForApproval,
-          adminDashboardData: newAdminData.adminDashboardData,
-          userList: newAdminData.userList
-        };
-
-        if (state.currentTaskView === 'adminLaporan') {
-            newState.adminLaporanData = (newAdminData.adminDashboardData || []).filter(row => row[7] === 'Completed');
-        }
-        
-        setState(newState);
-        showNotification(result.message, false); 
-      } catch (error) {
-        showNotification(`Gagal menolak semua: ${error.message}`, true);
-        setState({ isLoading: false });
-      }
-    }
-
-
-    // --- FUNGSI BARU: Tampilkan Modal Detail Tugas User ---
-    function showUserDetailsModal(username) {
-      const userData = state.adminUserStats[username];
-      if (!userData) return;
-
-      const modalTitle = getEl('user-task-modal-title');
-      const modalBody = getEl('user-task-modal-body');
-      
-      modalTitle.textContent = `Detail Tugas: ${username}`;
-      
-      const statusColors = {
-        'Pending': 'text-yellow-600',
-        'Pending Approval': 'text-orange-600',
-        'Completed': 'text-emerald-600',
-        'Rejected': 'text-red-600' 
-      };
-      
-      const taskRows = userData.tasks.map(task => {
-        let statusHtml = '';
-        const statusClass = statusColors[task.status] || 'text-gray-600';
-        
-        if (task.status === 'Pending Approval') {
-          statusHtml = `
-            <div class="flex items-center justify-center gap-1.5">
-              <span class="font-medium ${statusClass}">Menunggu ACC</span>
-              <button title="Buka Persetujuan" class="goto-approval-btn text-blue-500 hover:text-blue-700 p-0.5 rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256"><path d="M181.66,133.66l-72,72a8,8,0,0,1-11.32-11.32L156.69,136H40a8,8,0,0,1,0-16H156.69L98.34,60.34a8,8,0,0,1,11.32-11.32l72,72A8,8,0,0,1,181.66,133.66Z"></path></svg>
-              </button>
-            </div>
-          `;
-        } else {
-          let statusText = task.status;
-          if(task.status === 'Pending') statusText = 'Pending';
-          if(task.status === 'Completed') statusText = 'Selesai';
-          if(task.status === 'Rejected') statusText = 'Ditolak'; 
-          statusHtml = `<span class="font-medium ${statusClass}">${statusText}</span>`;
+            Object.entries(stats).forEach(([name, data]) => {
+                if(search && !name.toLowerCase().includes(search)) return;
+                const target = ROLES_CONFIG[data.role]?.targetMin || 1;
+                const color = data.points >= target ? 'bg-green-500' : 'bg-red-500';
+                
+                list.innerHTML += `
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:bg-blue-50 transition"
+                         onclick="openDetailModal('${name}', stats['${name}'].reports)">
+                        <div class="flex justify-between font-bold text-sm mb-2">
+                            <span>${name}</span>
+                            <span class="${data.points >= target ? 'text-green-600' : 'text-red-600'} text-lg">${data.points.toFixed(1)} Pts</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-2 mb-1"><div class="h-2 rounded-full ${color}" style="width: ${Math.min((data.points/target)*100, 100)}%"></div></div>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-xs text-gray-400">Total Output: ${data.items} unit</p>
+                            <span class="text-[10px] text-blue-500 font-bold bg-blue-100 px-2 rounded-full">Lihat Detail ></span>
+                        </div>
+                    </div>
+                `;
+            });
+            window.stats = stats;
         }
 
-        return `
-          <tr class="border-b last:border-b-0">
-            <td class="py-3 px-2 text-sm text-gray-700 align-top">
-              <span class="font-medium">${task.type}</span>: ${task.description}
-            </td>
-            <td class="py-3 px-2 text-sm text-gray-600 text-center align-top">${task.target}</td>
-            <td class="py-3 px-2 text-sm text-blue-700 font-bold text-center align-top">${task.hasil}</td>
-            <td class="py-3 px-2 text-sm text-center align-top">
-              ${statusHtml}
-            </td>
-          </tr>
-        `;
-      }).join('');
-
-      modalBody.innerHTML = `
-        <div class="overflow-x-auto">
-          <table class="min-w-full">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">Tugas</th>
-                <th class="py-2 px-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Target</th>
-                <th class="py-2 px-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Hasil</th>
-                <th class="py-2 px-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">Status</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-              ${taskRows}
-            </tbody>
-          </table>
-        </div>
-      `;
-      
-      getEl('user-task-modal').classList.remove('hidden');
-    }
-    
-    // --- FUNGSI BARU: Sembunyikan Modal ---
-    function hideUserDetailsModal() {
-      const modal = getEl('user-task-modal');
-      if (modal) {
-        modal.classList.add('hidden');
-        getEl('user-task-modal-body').innerHTML = ''; 
-      }
-    }
-
-    // --- Fungsi Sidebar Mobile ---
-    function openMobileSidebar() {
-      getEl('mobile-sidebar-overlay').classList.remove('hidden');
-      getEl('mobile-sidebar').classList.remove('-translate-x-full');
-    }
-    function closeMobileSidebar() {
-      getEl('mobile-sidebar-overlay').classList.add('hidden');
-      getEl('mobile-sidebar').classList.add('-translate-x-full');
-    }
-
-    // --- Inisialisasi Aplikasi ---
-    document.addEventListener('DOMContentLoaded', () => {
-      // Cek auto-login
-      const savedUser = localStorage.getItem('dailyTaskUser');
-      if (savedUser && GAS_WEB_APP_URL !== 'PASTE_URL_APLIKASI_WEB_ANDA_DI_SINI') {
-        const { username, password } = JSON.parse(savedUser);
-        getEl('login-username').value = username;
-        getEl('login-password').value = password;
-        handleLogin(new Event('submit'));
-      } else {
-        setState({ isLoading: false }); 
-      }
-      
-      // Pasang Event Listener Global
-      getEl('login-form').addEventListener('submit', handleLogin);
-      setupPasswordToggle('toggle-login-password', 'login-password');
-      
-      // Aplikasi Utama
-      getEl('sidebar-nav').addEventListener('click', handleSidebarClick);
-      getEl('app-notification-close').addEventListener('click', hideNotification);
-
-      getEl('user-menu-button').addEventListener('click', () => {
-        getEl('logout-dropdown').classList.toggle('hidden');
-      });
-      getEl('logout-button').addEventListener('click', handleLogout);
-      getEl('logout-button-mobile').addEventListener('click', handleLogout);
-      getEl('sync-button').addEventListener('click', syncData);
-
-      // Klik di luar dropdown untuk menutup
-      document.addEventListener('click', (event) => {
-        const profileMenu = getEl('user-profile-menu');
-        const dropdown = getEl('logout-dropdown');
-        if (profileMenu && !profileMenu.contains(event.target) && !dropdown.classList.contains('hidden')) {
-          dropdown.classList.add('hidden');
-        }
-      });
-
-      // Listener untuk modal (tutup dan navigasi)
-      getEl('user-task-modal').addEventListener('click', (event) => {
-        if (event.target.closest('#user-task-modal-close')) {
-          hideUserDetailsModal();
-        }
-        if (event.target.id === 'user-task-modal') {
-          hideUserDetailsModal();
-        }
-        if (event.target.closest('.goto-approval-btn')) {
-          navigateToView('taskApproval');
-        }
-      });
-
-      // Listener untuk Sidebar Mobile
-      getEl('mobile-menu-button').addEventListener('click', openMobileSidebar);
-      getEl('mobile-sidebar-close').addEventListener('click', closeMobileSidebar);
-      getEl('mobile-sidebar-overlay').addEventListener('click', closeMobileSidebar);
-      getEl('sidebar-nav-mobile').addEventListener('click', handleSidebarClick);
-      
-      // Listener untuk tombol dropdown TUGAS MANDIRI
-      document.body.addEventListener('click', function(event) {
-        const toggleButton = event.target.closest('#toggle-tugas-mandiri');
-        if (toggleButton) {
-          const parentNav = toggleButton.closest('nav, aside');
-          if (!parentNav) return; 
-
-          const submenu = parentNav.querySelector('#submenu-tugas-mandiri');
-          const arrow = parentNav.querySelector('#arrow-tugas-mandiri');
-          
-          if (submenu && arrow) {
-            submenu.classList.toggle('hidden');
-            arrow.classList.toggle('rotate-180'); 
-          }
-        }
-      });
-      
-      // Listener untuk tombol "Kembali" di browser/HP
-      window.addEventListener('popstate', (event) => {
-        let viewToRender = state.userRole === 'admin' ? 'adminDashboard' : 'userDashboard';
-        
-        if (event.state && event.state.view) {
-          viewToRender = event.state.view;
-        } else {
-          const hashView = window.location.hash.substring(1);
-          if (hashView) {
-            viewToRender = hashView;
-          }
-        }
-        
-        console.log('Popstate triggered, rendering view:', viewToRender);
-        navigateToView(viewToRender, true); 
-      });
-
-      // Event Delegation untuk Konten Dinamis
-      const viewContainer = getEl('view-container');
-      viewContainer.addEventListener('click', handleViewContainerClick);
-      viewContainer.addEventListener('input', handleViewContainerInput);
-      viewContainer.addEventListener('change', handleViewContainerChange);
-      viewContainer.addEventListener('submit', handleViewContainerSubmit); 
-      
-    });
-
-  </script>
+    </script>
 </body>
 </html>
