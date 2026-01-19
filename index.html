@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Report Pekerjaan</title>
+    <title>Report Pekerjaan v4.0 (Fixed)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -14,6 +14,9 @@
         /* Bottom Nav Active State */
         .nav-active { color: #2563eb; border-top: 2px solid #2563eb; }
         .nav-inactive { color: #9ca3af; }
+        /* Animation */
+        .animate-fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen text-gray-800">
@@ -27,131 +30,159 @@
         
         <!-- LOADING -->
         <div id="loadingOverlay" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-            <div class="bg-white p-5 rounded-lg flex flex-col items-center">
-                <div class="loader mb-2"></div>
-                <p class="text-sm font-semibold text-gray-600">Memproses...</p>
+            <div class="bg-white p-5 rounded-lg flex flex-col items-center shadow-2xl">
+                <div class="loader mb-3"></div>
+                <p class="text-sm font-semibold text-gray-600">Menghubungkan ke Database...</p>
             </div>
         </div>
 
         <!-- LOGIN PAGE -->
-        <div id="loginPage" class="p-8 h-screen flex flex-col justify-center">
+        <div id="loginPage" class="p-8 h-screen flex flex-col justify-center animate-fade-in">
             <div class="text-center mb-10">
-                <div class="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <i class="fas fa-clipboard-list text-white text-3xl"></i>
+                <div class="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg ring-4 ring-blue-100">
+                    <i class="fas fa-clipboard-check text-white text-3xl"></i>
                 </div>
                 <h1 class="text-2xl font-bold text-gray-800">Report Pekerjaan</h1>
-                <p class="text-gray-500 text-sm">System v3.5</p>
+                <p class="text-gray-500 text-sm">System v4.0 (Stable)</p>
             </div>
             <form id="loginForm" class="space-y-4">
-                <input type="text" id="username" class="w-full px-4 py-3 border rounded-lg" placeholder="Username" required>
-                <input type="password" id="password" class="w-full px-4 py-3 border rounded-lg" placeholder="Password" required>
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700">MASUK</button>
+                <div class="relative">
+                    <i class="fas fa-user absolute left-4 top-4 text-gray-400"></i>
+                    <input type="text" id="username" class="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Username" required>
+                </div>
+                <div class="relative">
+                    <i class="fas fa-lock absolute left-4 top-4 text-gray-400"></i>
+                    <input type="password" id="password" class="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition" placeholder="Password" required>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 shadow-lg transform active:scale-95 transition">MASUK</button>
             </form>
         </div>
 
         <!-- DASHBOARD PEKERJA -->
-        <div id="workerDashboard" class="hidden flex-1 flex flex-col bg-gray-50 relative">
+        <div id="workerDashboard" class="hidden flex-1 flex flex-col bg-gray-50 relative animate-fade-in">
             
             <!-- HEADER (Fixed) -->
-            <div class="bg-blue-600 text-white p-6 pb-8 rounded-b-[2rem] shadow-xl z-10">
+            <div class="bg-blue-600 text-white p-6 pb-8 rounded-b-[2.5rem] shadow-xl z-10 relative">
                 <div class="flex justify-between items-start">
                     <div>
                         <h2 id="workerName" class="text-xl font-bold">Nama</h2>
-                        <p id="workerRole" class="text-blue-100 text-xs bg-blue-700 inline-block px-2 py-1 rounded mt-1">Role</p>
+                        <p id="workerRole" class="text-blue-100 text-xs bg-blue-700/50 inline-block px-3 py-1 rounded-full mt-1 backdrop-blur-sm">Role</p>
                     </div>
-                    <button onclick="logout()" class="bg-blue-700/50 p-2 rounded-lg"><i class="fas fa-sign-out-alt"></i></button>
+                    <div class="flex gap-2">
+                        <button onclick="refreshDataManual()" class="bg-blue-500/50 p-2 rounded-lg hover:bg-blue-500 transition" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+                        <button onclick="logout()" class="bg-blue-700/50 p-2 rounded-lg hover:bg-red-500 transition"><i class="fas fa-sign-out-alt"></i></button>
+                    </div>
                 </div>
             </div>
 
             <!-- CONTENT AREA (Scrollable) -->
-            <div class="flex-1 overflow-y-auto pb-20 -mt-6 z-0 px-4">
+            <div class="flex-1 overflow-y-auto pb-24 -mt-6 z-0 px-4 pt-4">
                 
                 <!-- TAB 1: INPUT LAPORAN -->
-                <div id="worker-view-input" class="space-y-4 pt-4">
+                <div id="worker-view-input" class="space-y-4">
                     <!-- Form Input -->
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mt-2">
-                        <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle text-blue-500"></i> Lapor Pekerjaan</h3>
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mt-2">
+                        <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                            <i class="fas fa-pen-to-square text-blue-500"></i> Lapor Pekerjaan
+                        </h3>
                         <form id="reportForm" class="space-y-4">
                             <div>
-                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Pekerjaan</label>
-                                <select id="taskType" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mt-1 focus:ring-2 focus:ring-blue-100 outline-none"></select>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Jenis Pekerjaan</label>
+                                <div class="relative">
+                                    <select id="taskType" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mt-1 focus:ring-2 focus:ring-blue-100 outline-none appearance-none"></select>
+                                    <i class="fas fa-chevron-down absolute right-3 top-4 text-gray-400 pointer-events-none"></i>
+                                </div>
                             </div>
                             <div>
-                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Jumlah</label>
-                                <input type="number" id="taskQty" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mt-1 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="0" required>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Jumlah (Qty)</label>
+                                <input type="number" id="taskQty" step="0.01" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mt-1 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="0" required>
+                                <p class="text-[10px] text-gray-400 mt-1">*Bisa menggunakan koma atau titik</p>
                             </div>
                             <div>
-                                <label class="text-xs font-bold text-gray-400 uppercase tracking-wide">Keterangan (Opsional)</label>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Keterangan / No. Resi</label>
                                 <textarea id="taskNotes" rows="2" class="w-full p-3 border rounded-xl text-sm bg-gray-50 mt-1 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="Contoh: Nomor Resi..."></textarea>
                             </div>
-                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 mt-2 active:scale-95 transition">Kirim Laporan</button>
+                            <button type="submit" class="w-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-blue-200 mt-2 active:scale-95 transition">
+                                <i class="fas fa-paper-plane mr-2"></i> Kirim Laporan
+                            </button>
                         </form>
                     </div>
                 </div>
 
                 <!-- TAB 2: RIWAYAT & FILTER -->
-                <div id="worker-view-history" class="hidden space-y-4 pt-4">
+                <div id="worker-view-history" class="hidden space-y-4">
                     
                     <!-- Filter Controls -->
                     <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200 mt-2">
                         <div class="flex gap-2 mb-2">
-                            <select id="filterTypeWorker" class="flex-1 p-2 border rounded text-sm font-bold text-gray-600 bg-gray-50" onchange="handleFilterChange('Worker')">
+                            <select id="filterTypeWorker" class="flex-1 p-2 border rounded-lg text-sm font-bold text-gray-600 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100" onchange="handleFilterChange('Worker')">
                                 <option value="today">Hari Ini</option>
                                 <option value="week">Minggu Ini</option>
                                 <option value="month">Bulan Ini</option>
                                 <option value="custom">Custom Tanggal</option>
                             </select>
-                            <button onclick="renderWorkerHistory()" class="bg-blue-600 text-white px-3 rounded text-sm"><i class="fas fa-search"></i></button>
+                            <button onclick="renderWorkerHistory()" class="bg-blue-600 text-white px-4 rounded-lg text-sm hover:bg-blue-700 transition"><i class="fas fa-search"></i></button>
                         </div>
                         <div id="dateRangeWorker" class="hidden flex gap-2 animate-fade-in">
-                            <input type="date" id="startDateWorker" class="flex-1 p-1 border rounded text-xs">
-                            <input type="date" id="endDateWorker" class="flex-1 p-1 border rounded text-xs">
+                            <input type="date" id="startDateWorker" class="flex-1 p-2 border rounded-lg text-xs bg-gray-50">
+                            <input type="date" id="endDateWorker" class="flex-1 p-2 border rounded-lg text-xs bg-gray-50">
                         </div>
                     </div>
 
                     <!-- Summary Card (Clickable) -->
-                    <div onclick="openDetailModalFromHistory()" class="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-5 rounded-xl shadow-lg cursor-pointer transform transition hover:scale-[1.02]">
-                        <div class="flex justify-between items-center">
+                    <div onclick="openDetailModalFromHistory()" class="bg-gradient-to-br from-blue-600 to-indigo-600 text-white p-5 rounded-2xl shadow-lg shadow-blue-200 cursor-pointer transform transition hover:scale-[1.02] active:scale-95 relative overflow-hidden">
+                        <div class="absolute right-0 top-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
+                        <div class="flex justify-between items-center relative z-10">
                             <div>
-                                <p class="text-xs text-blue-100 mb-1">Total Poin (Periode Ini)</p>
-                                <h2 id="historyTotalPoints" class="text-3xl font-bold">0</h2>
+                                <p class="text-xs text-blue-100 mb-1">Total Poin Valid (Periode Ini)</p>
+                                <h2 id="historyTotalPoints" class="text-4xl font-bold">0</h2>
                             </div>
-                            <div class="bg-white/20 p-3 rounded-full">
-                                <i class="fas fa-list-ul text-2xl"></i>
+                            <div class="bg-white/20 p-3 rounded-xl backdrop-blur-sm">
+                                <i class="fas fa-chart-line text-2xl"></i>
                             </div>
                         </div>
-                        <p class="text-[10px] mt-2 text-blue-100 flex items-center gap-1"><i class="fas fa-info-circle"></i> Klik untuk lihat rincian detail</p>
+                        <p class="text-[10px] mt-3 text-blue-100 flex items-center gap-1"><i class="fas fa-info-circle"></i> Klik kartu ini untuk melihat rincian</p>
                     </div>
 
                     <!-- List Summary -->
-                    <div id="workerHistoryList" class="space-y-2 pb-10"></div>
+                    <h3 class="text-xs font-bold text-gray-500 uppercase tracking-wider pl-1">Riwayat Transaksi</h3>
+                    <div id="workerHistoryList" class="space-y-3 pb-10"></div>
                 </div>
             </div>
 
             <!-- BOTTOM NAVIGATION -->
-            <div class="bg-white border-t flex justify-around p-2 pb-4 shadow-[0_-5px_10px_rgba(0,0,0,0.05)] z-20">
-                <button onclick="switchWorkerTab('input')" id="btn-tab-input" class="flex-1 text-center py-2 nav-active">
-                    <i class="fas fa-edit text-xl mb-1 block"></i>
-                    <span class="text-xs font-bold">Input Laporan</span>
+            <div class="bg-white border-t flex justify-around p-2 pb-6 shadow-[0_-5px_10px_rgba(0,0,0,0.05)] z-20 absolute bottom-0 w-full">
+                <button onclick="switchWorkerTab('input')" id="btn-tab-input" class="flex-1 text-center py-2 nav-active group">
+                    <div class="w-12 h-8 mx-auto flex items-center justify-center rounded-full group-hover:bg-blue-50 transition">
+                        <i class="fas fa-edit text-xl mb-1 block"></i>
+                    </div>
+                    <span class="text-[10px] font-bold">Input</span>
                 </button>
-                <button onclick="switchWorkerTab('history')" id="btn-tab-history" class="flex-1 text-center py-2 nav-inactive">
-                    <i class="fas fa-history text-xl mb-1 block"></i>
-                    <span class="text-xs font-bold">Riwayat</span>
+                <button onclick="switchWorkerTab('history')" id="btn-tab-history" class="flex-1 text-center py-2 nav-inactive group">
+                     <div class="w-12 h-8 mx-auto flex items-center justify-center rounded-full group-hover:bg-blue-50 transition">
+                        <i class="fas fa-history text-xl mb-1 block"></i>
+                    </div>
+                    <span class="text-[10px] font-bold">Riwayat</span>
                 </button>
             </div>
         </div>
 
         <!-- DASHBOARD SPV -->
-        <div id="spvDashboard" class="hidden flex-1 flex flex-col bg-gray-50">
+        <div id="spvDashboard" class="hidden flex-1 flex flex-col bg-gray-50 animate-fade-in">
             <div class="bg-slate-800 text-white p-4 shadow-lg sticky top-0 z-20">
                 <div class="flex justify-between items-center mb-4">
-                    <h1 class="font-bold text-lg"><i class="fas fa-user-shield text-blue-400 mr-2"></i> Supervisor</h1>
-                    <button onclick="logout()"><i class="fas fa-sign-out-alt"></i></button>
+                    <h1 class="font-bold text-lg flex items-center gap-2">
+                        <i class="fas fa-user-shield text-blue-400"></i> Supervisor Area
+                    </h1>
+                    <div class="flex gap-2">
+                         <button onclick="refreshDataManual()" class="bg-slate-700 p-2 rounded hover:bg-slate-600 transition" title="Refresh Data"><i class="fas fa-sync-alt"></i></button>
+                        <button onclick="logout()" class="hover:text-red-400 transition"><i class="fas fa-sign-out-alt"></i></button>
+                    </div>
                 </div>
                 <div class="flex p-1 bg-slate-700 rounded-lg">
-                    <button onclick="switchSpvTab('validate')" id="tab-validate" class="flex-1 py-2 text-xs font-bold rounded bg-blue-500 text-white">Validasi</button>
-                    <button onclick="switchSpvTab('bulk')" id="tab-bulk" class="flex-1 py-2 text-xs font-bold rounded text-slate-300">Input Massal</button>
-                    <button onclick="switchSpvTab('team')" id="tab-team" class="flex-1 py-2 text-xs font-bold rounded text-slate-300">Laporan</button>
+                    <button onclick="switchSpvTab('validate')" id="tab-validate" class="flex-1 py-2 text-xs font-bold rounded bg-blue-500 text-white transition-all">Validasi</button>
+                    <button onclick="switchSpvTab('bulk')" id="tab-bulk" class="flex-1 py-2 text-xs font-bold rounded text-slate-300 hover:text-white transition-all">Input Massal</button>
+                    <button onclick="switchSpvTab('team')" id="tab-team" class="flex-1 py-2 text-xs font-bold rounded text-slate-300 hover:text-white transition-all">Laporan</button>
                 </div>
             </div>
 
@@ -159,28 +190,41 @@
                 
                 <!-- 1. VALIDASI -->
                 <div id="view-validate" class="space-y-4">
-                    <div class="flex justify-between items-center"><h2 class="text-sm font-bold text-gray-600">Perlu Validasi</h2><button onclick="loadData();" class="text-xs text-blue-600"><i class="fas fa-sync"></i> Refresh</button></div>
+                    <div class="flex justify-between items-center bg-yellow-50 p-3 rounded-lg border border-yellow-100">
+                        <h2 class="text-xs font-bold text-yellow-800 flex items-center gap-2">
+                            <i class="fas fa-exclamation-circle"></i> Perlu Validasi
+                        </h2>
+                        <span id="pendingCountBadge" class="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">0</span>
+                    </div>
                     <div id="validationList" class="space-y-3"></div>
                 </div>
 
                 <!-- 2. INPUT MASSAL -->
                 <div id="view-bulk" class="hidden space-y-4">
-                    <div class="bg-white p-4 rounded-xl shadow-sm">
-                        <h3 class="font-bold text-gray-800 mb-2 text-sm">Langkah 1: Pilih Pekerja</h3>
-                        <div id="bulkUserList" class="max-h-40 overflow-y-auto border rounded p-2 bg-gray-50 grid grid-cols-1 gap-2"></div>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-gray-800 mb-2 text-sm flex items-center gap-2"><div class="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">1</div> Pilih Pekerja</h3>
+                        <div id="bulkUserList" class="max-h-40 overflow-y-auto border rounded-lg p-2 bg-gray-50 grid grid-cols-1 gap-1"></div>
                     </div>
-                    <div class="bg-white p-4 rounded-xl shadow-sm">
-                        <h3 class="font-bold text-gray-800 mb-2 text-sm">Langkah 2: Detail Pekerjaan</h3>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="font-bold text-gray-800 mb-2 text-sm flex items-center gap-2"><div class="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs">2</div> Detail Pekerjaan</h3>
                         <div class="space-y-3">
-                            <select id="bulkTaskType" class="w-full p-2 border rounded text-sm bg-gray-50"></select>
+                            <select id="bulkTaskType" class="w-full p-2 border rounded-lg text-sm bg-gray-50"></select>
                             
-                            <input type="text" id="bulkTaskDesc" class="w-full p-2 border rounded text-sm" placeholder="Keterangan (Wajib)">
+                            <input type="text" id="bulkTaskDesc" class="w-full p-2 border rounded-lg text-sm" placeholder="Keterangan (Wajib)">
                             <div class="flex gap-2">
-                                <div class="flex-1"><label class="text-[10px] text-gray-400 uppercase">Jumlah</label><input type="number" id="bulkQty" class="w-full p-2 border rounded text-sm" placeholder="0"></div>
-                                <div class="flex-1"><label class="text-[10px] text-gray-400 uppercase">Index Point</label><input type="number" id="bulkIndex" class="w-full p-2 border rounded text-sm" value="1.0" step="0.1"></div>
+                                <div class="flex-1">
+                                    <label class="text-[10px] text-gray-400 uppercase font-bold">Jumlah</label>
+                                    <input type="number" id="bulkQty" step="0.01" class="w-full p-2 border rounded-lg text-sm" placeholder="0">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="text-[10px] text-gray-400 uppercase font-bold">Index Point</label>
+                                    <input type="number" id="bulkIndex" step="0.1" class="w-full p-2 border rounded-lg text-sm" value="1.0">
+                                </div>
                             </div>
                         </div>
-                        <button onclick="submitBulk()" class="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-lg shadow hover:bg-green-700">SIMPAN UNTUK SEMUA PEKERJA</button>
+                        <button onclick="submitBulk()" class="w-full mt-4 bg-green-600 text-white font-bold py-3 rounded-lg shadow hover:bg-green-700 transition">
+                            <i class="fas fa-save mr-1"></i> SIMPAN SEMUA
+                        </button>
                     </div>
                 </div>
 
@@ -188,19 +232,19 @@
                 <div id="view-team" class="hidden space-y-4">
                     <div class="bg-white p-3 rounded-xl shadow-sm border border-gray-200">
                         <div class="flex gap-2 mb-2">
-                            <select id="filterTypeSpv" class="flex-1 p-2 border rounded text-sm font-bold text-gray-600 bg-gray-50" onchange="handleFilterChange('Spv')">
+                            <select id="filterTypeSpv" class="flex-1 p-2 border rounded-lg text-sm font-bold text-gray-600 bg-gray-50" onchange="handleFilterChange('Spv')">
                                 <option value="today">Hari Ini</option>
                                 <option value="week">Minggu Ini</option>
                                 <option value="month">Bulan Ini</option>
                                 <option value="custom">Custom Tanggal</option>
                             </select>
-                            <button onclick="renderTeamStats()" class="bg-blue-600 text-white px-3 rounded text-sm"><i class="fas fa-search"></i></button>
+                            <button onclick="renderTeamStats()" class="bg-blue-600 text-white px-3 rounded-lg text-sm hover:bg-blue-700"><i class="fas fa-search"></i></button>
                         </div>
                         <div id="dateRangeSpv" class="hidden flex gap-2 animate-fade-in">
-                            <input type="date" id="startDateSpv" class="flex-1 p-1 border rounded text-xs">
-                            <input type="date" id="endDateSpv" class="flex-1 p-1 border rounded text-xs">
+                            <input type="date" id="startDateSpv" class="flex-1 p-2 border rounded-lg text-xs bg-gray-50">
+                            <input type="date" id="endDateSpv" class="flex-1 p-2 border rounded-lg text-xs bg-gray-50">
                         </div>
-                        <input type="text" id="filterNameSpv" class="w-full p-2 border rounded text-sm mt-2" placeholder="Cari Nama Karyawan..." oninput="renderTeamStats()">
+                        <input type="text" id="filterNameSpv" class="w-full p-2 border rounded-lg text-sm mt-2 focus:ring-2 focus:ring-blue-100 outline-none" placeholder="Cari Nama Karyawan..." oninput="renderTeamStats()">
                     </div>
                     
                     <div id="teamStatsList" class="space-y-3"></div>
@@ -210,69 +254,87 @@
     </div>
 
     <!-- MODAL 1: VALIDASI SPV -->
-    <div id="validateModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden">
+    <div id="validateModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all scale-100">
             <div class="bg-blue-600 p-4 text-white flex justify-between items-center">
-                <h3 class="font-bold">Validasi Hasil Pekerja</h3>
-                <button onclick="closeModal('validateModal')" class="text-white opacity-70 hover:opacity-100"><i class="fas fa-times"></i></button>
+                <h3 class="font-bold text-lg"><i class="fas fa-check-double mr-2"></i>Validasi</h3>
+                <button onclick="closeModal('validateModal')" class="text-white opacity-70 hover:opacity-100 bg-blue-700 w-8 h-8 rounded-full flex items-center justify-center"><i class="fas fa-times"></i></button>
             </div>
-            <div class="p-4 space-y-3">
+            <div class="p-5 space-y-4">
                 <input type="hidden" id="val_id">
-                <div><label class="text-xs font-bold text-gray-500">Nama Pekerja</label><p id="val_name" class="font-bold text-gray-800"></p></div>
-                <div><label class="text-xs font-bold text-gray-500">Jenis Pekerjaan</label><p id="val_task" class="text-sm text-gray-700"></p></div>
-                <hr class="border-gray-100">
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label class="text-xs font-bold text-blue-600">Jumlah</label><input type="number" id="val_qty" class="w-full p-2 border border-blue-200 rounded font-bold text-gray-700" oninput="calcTotal()"></div>
-                    <div><label class="text-xs font-bold text-blue-600">Index Point (x)</label><input type="number" id="val_index" class="w-full p-2 border border-blue-200 rounded font-bold text-gray-700" step="0.1" oninput="calcTotal()"></div>
+                <div class="flex justify-between items-start border-b pb-3">
+                     <div><label class="text-[10px] font-bold text-gray-400 uppercase">Nama Pekerja</label><p id="val_name" class="font-bold text-gray-800 text-lg leading-tight"></p></div>
+                     <div class="text-right"><label class="text-[10px] font-bold text-gray-400 uppercase">Pekerjaan</label><p id="val_task" class="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded"></p></div>
                 </div>
-                <div><label class="text-xs font-bold text-gray-500">Keterangan / Notes</label><input type="text" id="val_notes" class="w-full p-2 border rounded text-sm bg-gray-50"></div>
-                <div class="bg-gray-100 p-3 rounded-lg text-center"><span class="text-xs text-gray-500">Total Point Akhir</span><p id="val_total" class="text-2xl font-bold text-blue-600">0</p></div>
-                <div class="flex gap-2 pt-2">
-                    <button onclick="submitValidation('reject')" class="flex-1 py-3 border border-red-200 text-red-600 rounded-lg font-bold text-sm hover:bg-red-50">TOLAK</button>
-                    <button onclick="submitValidation('approve')" class="flex-1 py-3 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 shadow">SETUJU</button>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">Jumlah (Edit)</label>
+                        <input type="number" id="val_qty" step="0.01" class="w-full p-2 border-2 border-blue-100 rounded-lg font-bold text-gray-700 focus:border-blue-500 outline-none" oninput="calcTotal()">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 uppercase">Index (x)</label>
+                        <input type="number" id="val_index" step="0.1" class="w-full p-2 border-2 border-blue-100 rounded-lg font-bold text-gray-700 focus:border-blue-500 outline-none" oninput="calcTotal()">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase">Notes (Opsional)</label>
+                    <input type="text" id="val_notes" class="w-full p-3 border rounded-lg text-sm bg-gray-50">
+                </div>
+                
+                <div class="bg-gradient-to-r from-gray-100 to-gray-200 p-4 rounded-xl text-center shadow-inner">
+                    <span class="text-xs font-bold text-gray-500 uppercase tracking-widest">Total Poin Akhir</span>
+                    <p id="val_total" class="text-3xl font-black text-blue-700 mt-1">0</p>
+                </div>
+
+                <div class="flex gap-3 pt-2">
+                    <button onclick="submitValidation('reject')" class="flex-1 py-3 border-2 border-red-100 text-red-500 rounded-xl font-bold text-sm hover:bg-red-50 transition">
+                        <i class="fas fa-trash mr-1"></i> TOLAK
+                    </button>
+                    <button onclick="submitValidation('approve')" class="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-200 transition">
+                        <i class="fas fa-check-circle mr-1"></i> SETUJUI
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- MODAL 2: DETAIL POIN -->
-    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md h-[80vh] flex flex-col overflow-hidden">
-            <div class="bg-slate-800 p-4 text-white flex justify-between items-center">
+    <div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md h-[85vh] flex flex-col overflow-hidden animate-fade-in">
+            <div class="bg-slate-800 p-5 text-white flex justify-between items-center shrink-0">
                 <div>
-                    <h3 class="font-bold text-lg" id="detailModalTitle">Rincian Poin</h3>
-                    <p class="text-xs text-slate-300" id="detailModalSubtitle">Periode: -</p>
+                    <h3 class="font-bold text-lg" id="detailModalTitle">Rincian</h3>
+                    <p class="text-xs text-slate-300 mt-1 flex items-center gap-1"><i class="far fa-calendar-alt"></i> <span id="detailModalSubtitle">-</span></p>
                 </div>
-                <button onclick="closeModal('detailModal')" class="text-white opacity-70 hover:opacity-100"><i class="fas fa-times text-xl"></i></button>
+                <button onclick="closeModal('detailModal')" class="bg-slate-700 w-8 h-8 rounded-full hover:bg-slate-600 transition flex items-center justify-center"><i class="fas fa-times"></i></button>
             </div>
             
-            <div class="flex-1 overflow-y-auto p-4">
-                <table class="w-full text-sm text-left">
-                    <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b">
+            <div class="flex-1 overflow-y-auto p-0">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead class="text-[10px] text-gray-500 uppercase bg-gray-100 border-b sticky top-0 z-10">
                         <tr>
-                            <th class="px-2 py-2">Tgl</th>
-                            <th class="px-2 py-2">Pekerjaan</th>
-                            <th class="px-2 py-2 text-right">Hasil</th>
-                            <th class="px-2 py-2 text-right">Poin</th>
+                            <th class="px-4 py-3">Tanggal</th>
+                            <th class="px-2 py-3">Item</th>
+                            <th class="px-2 py-3 text-right">Qty</th>
+                            <th class="px-4 py-3 text-right">Poin</th>
                         </tr>
                     </thead>
                     <tbody id="detailModalBody" class="divide-y divide-gray-100"></tbody>
-                    <tfoot class="bg-blue-50 font-bold text-blue-700">
-                        <tr>
-                            <td colspan="3" class="px-2 py-3 text-right">TOTAL POIN:</td>
-                            <td class="px-2 py-3 text-right" id="detailModalTotal">0</td>
-                        </tr>
-                    </tfoot>
                 </table>
             </div>
-            <div class="p-3 bg-gray-50 border-t text-center">
-                <button onclick="closeModal('detailModal')" class="bg-slate-200 text-slate-700 px-6 py-2 rounded-lg text-sm font-bold">Tutup</button>
+            
+            <div class="bg-blue-50 p-4 border-t border-blue-100 shrink-0">
+                <div class="flex justify-between items-center">
+                    <span class="text-sm font-bold text-blue-800">TOTAL POIN:</span>
+                    <span class="text-2xl font-black text-blue-600" id="detailModalTotal">0</span>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // CONFIG - ADDED ROLE RETUR
+        // --- KONFIGURASI ROLE & TUGAS ---
         const ROLES_CONFIG = {
             'PACKER_INTI': { label: 'Packer (Inti)', targetMin: 220, targetExc: 250 },
             'PACKER_FREE': { label: 'Packer (Freelance)', targetMin: 180, targetExc: 210 },
@@ -298,6 +360,27 @@
         let usersData = [];
         let filteredHistoryData = []; 
 
+        // --- UTILITIES PENTING (FIX BUGS) ---
+
+        /**
+         * Mengubah segala input (string/angka) dengan koma/titik menjadi Float yang valid.
+         * Contoh: "1,5" -> 1.5 | "1.5" -> 1.5 | 10 -> 10.0
+         */
+        function safeParseFloat(val) {
+            if (val === undefined || val === null || val === '') return 0;
+            // Ubah ke string, ganti koma dengan titik, lalu parse
+            let strVal = String(val).replace(/,/g, '.');
+            let parsed = parseFloat(strVal);
+            return isNaN(parsed) ? 0 : parsed;
+        }
+
+        // Format tanggal Indonesia
+        function formatDateIndo(dateStr) {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr; // Fallback jika format invalid
+            return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             checkLogin();
             setDefaultDates();
@@ -306,42 +389,65 @@
         function setDefaultDates() {
             const today = new Date().toISOString().split('T')[0];
             ['Worker', 'Spv'].forEach(role => {
-                document.getElementById(`startDate${role}`).value = today;
-                document.getElementById(`endDate${role}`).value = today;
+                const startEl = document.getElementById(`startDate${role}`);
+                const endEl = document.getElementById(`endDate${role}`);
+                if(startEl && endEl) {
+                    startEl.value = today;
+                    endEl.value = today;
+                }
             });
         }
 
         async function callAPI(action, payload = {}) {
             document.getElementById('loadingOverlay').classList.remove('hidden');
             try {
-                const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=${action}`, { method: 'POST', body: JSON.stringify(payload) });
+                // Tambahkan parameter waktu agar tidak cache
+                const url = `${GOOGLE_SCRIPT_URL}?action=${action}&t=${new Date().getTime()}`;
+                const res = await fetch(url, { method: 'POST', body: JSON.stringify(payload) });
                 const data = await res.json();
                 document.getElementById('loadingOverlay').classList.add('hidden');
                 return data;
             } catch (e) {
                 document.getElementById('loadingOverlay').classList.add('hidden');
-                Swal.fire('Error', 'Koneksi Bermasalah', 'error');
+                console.error(e);
+                Swal.fire('Koneksi Gagal', 'Gagal menghubungi server database. Cek internet anda.', 'error');
                 return null;
             }
         }
 
+        // --- AUTH ---
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const res = await callAPI('login', { username: document.getElementById('username').value.trim(), password: document.getElementById('password').value.trim() });
             if (res?.status === 'success') {
-                localStorage.setItem('kpi_user', JSON.stringify(res.user));
+                localStorage.setItem('kpi_user_v4', JSON.stringify(res.user));
                 currentUser = res.user;
                 initApp();
-            } else Swal.fire('Gagal', 'Login Salah', 'error');
+            } else Swal.fire('Gagal', 'Username atau Password salah', 'error');
         });
 
         function checkLogin() {
-            const saved = localStorage.getItem('kpi_user');
+            const saved = localStorage.getItem('kpi_user_v4');
             if (saved) { currentUser = JSON.parse(saved); initApp(); }
             else showPage('loginPage');
         }
 
-        function logout() { localStorage.removeItem('kpi_user'); location.reload(); }
+        function logout() { 
+            Swal.fire({
+                title: 'Keluar?',
+                text: "Anda harus login ulang nanti.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Ya, Keluar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    localStorage.removeItem('kpi_user_v4'); 
+                    location.reload(); 
+                }
+            })
+        }
 
         function showPage(id) {
             ['loginPage', 'workerDashboard', 'spvDashboard'].forEach(p => document.getElementById(p).classList.add('hidden'));
@@ -351,27 +457,37 @@
         async function initApp() {
             if (currentUser.role === 'SPV') {
                 showPage('spvDashboard');
-                await loadData();
-                if(currentUser.role === 'SPV') {
-                    renderBulkUserList();
-                    renderBulkTaskOptions(); 
-                }
-                renderSpvView();
+                await refreshDataManual(); // Load data awal
+                renderBulkUserList();
+                renderBulkTaskOptions(); 
             } else {
                 showPage('workerDashboard');
                 document.getElementById('workerName').textContent = currentUser.name;
                 document.getElementById('workerRole').textContent = ROLES_CONFIG[currentUser.role]?.label || currentUser.role;
                 renderTaskOptions();
-                await loadData();
-                renderWorkerHistory();    
+                await refreshDataManual(); // Load data awal
             }
         }
 
-        async function loadData() {
+        async function refreshDataManual() {
             const res = await callAPI('get_reports');
             if (res?.status === 'success') {
                 reportsData = res.reports;
                 usersData = res.users;
+                
+                // Re-render view yang aktif
+                if (currentUser.role === 'SPV') {
+                    renderSpvView();
+                    renderTeamStats(); // Update jika sedang buka tab team
+                } else {
+                    renderWorkerHistory();
+                }
+                
+                // Toast notif kecil
+                const toast = Swal.mixin({
+                    toast: true, position: 'top-end', showConfirmButton: false, timer: 1500, timerProgressBar: true
+                });
+                toast.fire({ icon: 'success', title: 'Data Diperbarui' });
             }
         }
 
@@ -397,8 +513,10 @@
                 start = new Date(today.getFullYear(), today.getMonth(), 1);
                 end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
             } else if (type === 'custom') {
-                start = new Date(document.getElementById(`startDate${role}`).value);
-                end = new Date(document.getElementById(`endDate${role}`).value);
+                const sVal = document.getElementById(`startDate${role}`).value;
+                const eVal = document.getElementById(`endDate${role}`).value;
+                if(sVal) start = new Date(sVal);
+                if(eVal) end = new Date(eVal);
             }
             
             start.setHours(0,0,0,0);
@@ -410,10 +528,12 @@
         function switchWorkerTab(tab) {
             document.getElementById('worker-view-input').classList.add('hidden');
             document.getElementById('worker-view-history').classList.add('hidden');
-            document.getElementById('btn-tab-input').className = "flex-1 text-center py-2 nav-inactive";
-            document.getElementById('btn-tab-history').className = "flex-1 text-center py-2 nav-inactive";
+            document.getElementById('btn-tab-input').className = "flex-1 text-center py-2 nav-inactive group";
+            document.getElementById('btn-tab-history').className = "flex-1 text-center py-2 nav-inactive group";
+            
             document.getElementById(`worker-view-${tab}`).classList.remove('hidden');
-            document.getElementById(`btn-tab-${tab}`).className = "flex-1 text-center py-2 nav-active";
+            document.getElementById(`btn-tab-${tab}`).className = "flex-1 text-center py-2 nav-active group";
+            
             if(tab === 'history') renderWorkerHistory();
         }
 
@@ -428,10 +548,15 @@
         document.getElementById('reportForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const type = document.getElementById('taskType').value;
-            const qty = document.getElementById('taskQty').value;
+            
+            // GUNAKAN safeParseFloat DI SINI
+            const qty = safeParseFloat(document.getElementById('taskQty').value);
+            
+            if(qty <= 0) return Swal.fire('Error', 'Jumlah harus lebih dari 0', 'warning');
+
             const notes = document.getElementById('taskNotes').value;
             const taskInfo = TASKS_CONFIG[type];
-            const index = 1;
+            const index = 1; // Default worker index
             const total = qty * index * taskInfo.points;
 
             const payload = {
@@ -442,10 +567,11 @@
 
             const res = await callAPI('add_report', payload);
             if(res?.status === 'success') {
-                Swal.fire('Sukses', 'Laporan terkirim', 'success');
+                Swal.fire({ title: 'Terkirim!', text: 'Laporan berhasil disimpan.', icon: 'success', timer: 1500, showConfirmButton: false });
                 document.getElementById('taskQty').value = '';
                 document.getElementById('taskNotes').value = '';
-                await loadData(); 
+                await refreshDataManual(); 
+                switchWorkerTab('history');
             }
         });
 
@@ -455,30 +581,61 @@
             list.innerHTML = '';
             
             filteredHistoryData = reportsData.filter(r => {
+                // Parse tanggal lebih aman
                 const d = new Date(r.timestamp);
                 return r.name === currentUser.name && d >= start && d <= end;
             }).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-            const totalPeriod = filteredHistoryData.filter(r=>r.status === 'approved').reduce((sum, r) => sum + Number(r.total_points), 0);
-            document.getElementById('historyTotalPoints').textContent = totalPeriod.toFixed(1);
+            // GUNAKAN safeParseFloat untuk TOTAL
+            const totalPeriod = filteredHistoryData
+                .filter(r => r.status === 'approved')
+                .reduce((sum, r) => sum + safeParseFloat(r.total_points), 0);
+                
+            document.getElementById('historyTotalPoints').textContent = totalPeriod.toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
             if (filteredHistoryData.length === 0) {
-                list.innerHTML = '<div class="text-center text-gray-400 py-10">Tidak ada laporan pada periode ini</div>';
+                list.innerHTML = `
+                    <div class="text-center py-10 bg-white rounded-xl border border-dashed border-gray-300">
+                        <i class="fas fa-clipboard-list text-4xl text-gray-200 mb-2"></i>
+                        <p class="text-sm text-gray-400">Belum ada data periode ini</p>
+                    </div>`;
                 return;
             }
 
             filteredHistoryData.forEach(r => {
-                const color = r.status === 'approved' ? 'text-green-600 bg-green-50' : r.status === 'pending' ? 'text-yellow-600 bg-yellow-50' : 'text-red-600 bg-red-50';
-                const time = r.timestamp.substring(0, 10);
+                let statusClass, statusIcon;
+                if (r.status === 'approved') {
+                    statusClass = 'bg-green-100 text-green-700';
+                    statusIcon = 'fa-check';
+                } else if (r.status === 'pending') {
+                    statusClass = 'bg-yellow-100 text-yellow-700';
+                    statusIcon = 'fa-clock';
+                } else {
+                    statusClass = 'bg-red-100 text-red-700';
+                    statusIcon = 'fa-times';
+                }
+
+                const displayPoints = safeParseFloat(r.total_points).toLocaleString('id-ID', { maximumFractionDigits: 2 });
+                const timeStr = formatDateIndo(r.timestamp);
+
                 list.innerHTML += `
-                    <div class="bg-white p-3 rounded-lg border flex justify-between items-center">
-                        <div>
-                            <p class="font-bold text-sm text-gray-700">${r.task_label}</p>
-                            <p class="text-[10px] text-gray-400">${time} • ${r.qty} unit ${r.notes ? `(${r.notes})` : ''}</p>
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${statusClass} flex items-center gap-1">
+                                    <i class="fas ${statusIcon} text-[8px]"></i> ${r.status}
+                                </span>
+                                <span class="text-[10px] text-gray-400">${timeStr}</span>
+                            </div>
+                            <p class="font-bold text-gray-800 text-sm">${r.task_label}</p>
+                            <p class="text-xs text-gray-500 mt-1">
+                                <span class="font-semibold text-gray-700">${r.qty} Unit</span> 
+                                ${r.notes ? `<span class="italic border-l pl-2 ml-1 border-gray-300">${r.notes}</span>` : ''}
+                            </p>
                         </div>
-                        <div class="text-right">
-                            <span class="block font-bold text-blue-600 text-sm">${Number(r.total_points).toFixed(1)} pts</span>
-                            <span class="text-[10px] px-2 rounded ${color}">${r.status}</span>
+                        <div class="text-right pl-2">
+                            <span class="block font-black text-blue-600 text-lg">${displayPoints}</span>
+                            <span class="text-[10px] text-gray-400">Poin</span>
                         </div>
                     </div>
                 `;
@@ -491,9 +648,9 @@
         }
 
         function openDetailModal(title, data) {
-            document.getElementById('detailModalTitle').textContent = `Rincian: ${title}`;
+            document.getElementById('detailModalTitle').textContent = title;
             const { start, end } = getDateRange(currentUser.role === 'SPV' ? 'Spv' : 'Worker');
-            document.getElementById('detailModalSubtitle').textContent = `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+            document.getElementById('detailModalSubtitle').textContent = `${formatDateIndo(start)} - ${formatDateIndo(end)}`;
             
             const tbody = document.getElementById('detailModalBody');
             tbody.innerHTML = '';
@@ -502,27 +659,33 @@
             const sorted = [...data].sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
 
             sorted.forEach(r => {
-                const pts = Number(r.total_points);
+                const pts = safeParseFloat(r.total_points);
+                const qty = safeParseFloat(r.qty);
+                
                 if(r.status === 'approved') grandTotal += pts;
-                const statusIcon = r.status === 'approved' ? '<i class="fas fa-check text-green-500"></i>' : r.status === 'pending' ? '<i class="fas fa-clock text-yellow-500"></i>' : '<i class="fas fa-times text-red-500"></i>';
+                
+                const statusColor = r.status === 'approved' ? 'text-green-600' : r.status === 'pending' ? 'text-yellow-500' : 'text-red-500';
+                
                 tbody.innerHTML += `
-                    <tr class="bg-white border-b">
-                        <td class="px-2 py-2 text-gray-600 whitespace-nowrap">${r.timestamp.substring(5,10)}</td>
-                        <td class="px-2 py-2">
-                            <div class="font-medium text-gray-800">${r.task_label}</div>
-                            <div class="text-[10px] text-gray-400">${r.notes || '-'}</div>
+                    <tr class="bg-white hover:bg-gray-50 transition border-b border-gray-100 last:border-0">
+                        <td class="px-4 py-3 text-xs text-gray-500 whitespace-nowrap align-top">
+                            ${formatDateIndo(r.timestamp)}<br>
+                            <span class="text-[9px] ${statusColor} font-bold uppercase">${r.status}</span>
                         </td>
-                        <td class="px-2 py-2 text-right">
-                            <div class="text-gray-600">${r.qty}</div>
-                            <div class="text-[9px] text-blue-400">Idx: ${r.index_point}</div>
+                        <td class="px-2 py-3 align-top">
+                            <div class="text-xs font-bold text-gray-800">${r.task_label}</div>
+                            <div class="text-[10px] text-gray-400 leading-tight mt-0.5">${r.notes || '-'}</div>
                         </td>
-                        <td class="px-2 py-2 text-right font-bold ${r.status === 'approved' ? 'text-blue-600' : 'text-gray-400'}">
-                            ${pts.toFixed(1)} ${statusIcon}
+                        <td class="px-2 py-3 text-right text-xs font-medium text-gray-600 align-top">
+                            ${qty}
+                        </td>
+                        <td class="px-4 py-3 text-right font-bold ${r.status === 'approved' ? 'text-blue-600' : 'text-gray-300'} align-top">
+                            ${pts.toLocaleString('id-ID', { maximumFractionDigits: 2 })}
                         </td>
                     </tr>
                 `;
             });
-            document.getElementById('detailModalTotal').textContent = grandTotal.toFixed(1);
+            document.getElementById('detailModalTotal').textContent = grandTotal.toLocaleString('id-ID', { maximumFractionDigits: 2 });
             document.getElementById('detailModal').classList.remove('hidden');
         }
 
@@ -544,21 +707,35 @@
         function renderSpvView() {
             const list = document.getElementById('validationList');
             const pending = reportsData.filter(r => r.status === 'pending');
+            document.getElementById('pendingCountBadge').textContent = pending.length;
+            
             list.innerHTML = '';
             
-            if(pending.length === 0) { list.innerHTML = '<div class="text-center text-gray-400 py-10">Tidak ada data pending</div>'; return; }
+            if(pending.length === 0) { 
+                list.innerHTML = `
+                    <div class="text-center py-10">
+                        <i class="fas fa-check-circle text-4xl text-green-200 mb-2"></i>
+                        <p class="text-sm text-gray-400">Semua tugas sudah divalidasi</p>
+                    </div>`; 
+                return; 
+            }
 
             pending.forEach(r => {
                 list.innerHTML += `
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-400 cursor-pointer hover:bg-gray-50 transition"
+                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-yellow-400 cursor-pointer hover:bg-blue-50 transition group"
                         onclick='openValidationModal(${JSON.stringify(r)})'>
-                        <div class="flex justify-between items-start">
-                            <span class="font-bold text-gray-800">${r.name}</span>
-                            <span class="text-xs bg-gray-200 px-2 rounded">${r.role}</span>
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="font-bold text-gray-800">${r.name}</h4>
+                                <span class="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded">${r.role}</span>
+                            </div>
+                            <i class="fas fa-chevron-right text-gray-300 group-hover:text-blue-500 transition"></i>
                         </div>
-                        <p class="text-sm text-blue-600 font-bold mt-1">${r.task_label}</p>
-                        <p class="text-xs text-gray-500">Input: ${r.qty} Qty • Note: ${r.notes}</p>
-                        <div class="mt-2 text-right text-xs font-bold text-blue-500">Klik untuk Validasi ></div>
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="font-semibold text-blue-600">${r.task_label}</span>
+                            <span class="font-bold bg-yellow-50 text-yellow-700 px-2 rounded border border-yellow-100">${r.qty} Qty</span>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-2 italic line-clamp-1">${r.notes || 'Tanpa keterangan'}</p>
                     </div>
                 `;
             });
@@ -568,8 +745,11 @@
             document.getElementById('val_id').value = data.id;
             document.getElementById('val_name').textContent = data.name;
             document.getElementById('val_task').textContent = data.task_label;
-            document.getElementById('val_qty').value = data.qty;
-            document.getElementById('val_index').value = data.index_point || 1;
+            
+            // GUNAKAN safeParseFloat
+            document.getElementById('val_qty').value = safeParseFloat(data.qty);
+            document.getElementById('val_index').value = safeParseFloat(data.index_point) || 1;
+            
             document.getElementById('val_notes').value = data.notes;
             calcTotal(); 
             document.getElementById('validateModal').classList.remove('hidden');
@@ -577,48 +757,62 @@
 
         function calcTotal() {
             const id = document.getElementById('val_id').value;
+            // Handle jika data tidak ditemukan (misal baru di refresh)
             const r = reportsData.find(item => item.id == id);
-            const basePoint = TASKS_CONFIG[r.task_type]?.points || 1;
+            const basePoint = r ? (TASKS_CONFIG[r.task_type]?.points || 1) : 1;
             
-            const qty = parseFloat(document.getElementById('val_qty').value) || 0;
-            const index = parseFloat(document.getElementById('val_index').value) || 0;
+            // FIX: GUNAKAN safeParseFloat
+            const qty = safeParseFloat(document.getElementById('val_qty').value);
+            const index = safeParseFloat(document.getElementById('val_index').value);
+            
             const total = qty * index * basePoint;
-            document.getElementById('val_total').textContent = total.toFixed(1);
+            document.getElementById('val_total').textContent = total.toLocaleString('id-ID', { maximumFractionDigits: 2 });
         }
 
         async function submitValidation(action) {
             const id = document.getElementById('val_id').value;
             if (action === 'reject') {
-                if(!confirm('Yakin TOLAK? Data akan dihapus permanen.')) return;
+                const res = await Swal.fire({title: 'Hapus Data?', text: "Data ini akan dihapus permanen.", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'Hapus'});
+                if(!res.isConfirmed) return;
+                
                 await callAPI('delete_report', { id });
             } else {
-                const qty = document.getElementById('val_qty').value;
-                const index = document.getElementById('val_index').value;
+                const qty = safeParseFloat(document.getElementById('val_qty').value);
+                const index = safeParseFloat(document.getElementById('val_index').value);
+                
+                // Ambil text content lalu bersihkan jika ada format angka
+                const totalText = document.getElementById('val_total').textContent;
+                const total = safeParseFloat(totalText.replace(/\./g, '').replace(',', '.')); // Handle format indo ke float
+
                 const notes = document.getElementById('val_notes').value;
-                const total = document.getElementById('val_total').textContent;
-                await callAPI('validate_report', { id, qty, indexPoint: index, totalPoints: total, notes });
+                
+                // Hitung ulang manual untuk presisi
+                const r = reportsData.find(item => item.id == id);
+                const basePoint = r ? (TASKS_CONFIG[r.task_type]?.points || 1) : 1;
+                const finalTotal = qty * index * basePoint;
+
+                await callAPI('validate_report', { id, qty, indexPoint: index, totalPoints: finalTotal, notes });
             }
             closeModal('validateModal');
-            await loadData();
-            renderSpvView();
+            await refreshDataManual();
         }
 
         function closeModal(modalId) { document.getElementById(modalId).classList.add('hidden'); }
 
-        // --- SPV BULK (AUTO GENERATED OPTIONS) ---
+        // --- SPV BULK ---
         function renderBulkUserList() {
             const container = document.getElementById('bulkUserList');
             container.innerHTML = '';
             usersData.filter(u => u.role !== 'SPV').forEach(u => {
                 container.innerHTML += `
-                    <label class="checkbox-wrapper flex items-center p-2 hover:bg-gray-100 rounded cursor-pointer">
+                    <label class="checkbox-wrapper flex items-center p-2 hover:bg-blue-50 rounded cursor-pointer transition select-none">
                         <input type="checkbox" value="${u.name}" class="hidden peer" data-role="${u.role}">
-                        <div class="w-5 h-5 border-2 border-gray-300 rounded mr-3 flex items-center justify-center peer-checked:bg-blue-500 peer-checked:border-blue-500">
-                            <i class="fas fa-check text-white text-xs hidden"></i>
+                        <div class="w-5 h-5 border-2 border-gray-300 rounded mr-3 flex items-center justify-center peer-checked:bg-blue-600 peer-checked:border-blue-600 transition">
+                            <i class="fas fa-check text-white text-[10px] transform scale-0 peer-checked:scale-100 transition"></i>
                         </div>
                         <div class="flex-1">
                             <div class="font-bold text-sm text-gray-700">${u.name}</div>
-                            <div class="text-xs text-gray-400">${u.role}</div>
+                            <div class="text-[10px] text-gray-400">${u.role}</div>
                         </div>
                     </label>
                 `;
@@ -629,33 +823,38 @@
             const sel = document.getElementById('bulkTaskType');
             sel.innerHTML = '';
             Object.entries(TASKS_CONFIG).forEach(([k, v]) => {
-                // Tampilkan semua pekerjaan untuk SPV
                 sel.innerHTML += `<option value="${k}">${v.label}</option>`;
             });
         }
 
         async function submitBulk() {
             const checkboxes = document.querySelectorAll('#bulkUserList input:checked');
-            if (checkboxes.length === 0) return Swal.fire('Error', 'Pilih minimal 1 pekerja', 'warning');
+            if (checkboxes.length === 0) return Swal.fire('Pilih Pekerja', 'Minimal 1 pekerja harus dipilih', 'warning');
+            
             const type = document.getElementById('bulkTaskType').value;
             const desc = document.getElementById('bulkTaskDesc').value;
-            const qty = parseFloat(document.getElementById('bulkQty').value) || 0;
-            const index = parseFloat(document.getElementById('bulkIndex').value) || 1;
-            if (!desc) return Swal.fire('Error', 'Isi Keterangan Pekerjaan', 'warning');
+            
+            const qty = safeParseFloat(document.getElementById('bulkQty').value);
+            const index = safeParseFloat(document.getElementById('bulkIndex').value) || 1;
+            
+            if (!desc) return Swal.fire('Isi Keterangan', 'Keterangan pekerjaan wajib diisi', 'warning');
+            if (qty <= 0) return Swal.fire('Isi Jumlah', 'Jumlah qty harus diisi', 'warning');
             
             const taskInfo = TASKS_CONFIG[type];
             const total = qty * index * taskInfo.points;
+            
             const payload = Array.from(checkboxes).map(cb => ({
                 name: cb.value, role: cb.dataset.role, type: type, qty: qty, indexPoint: index, totalPoints: total,
                 status: 'approved', taskLabel: taskInfo.label, notes: desc
             }));
+
             const res = await callAPI('add_report', payload);
             if (res?.status === 'success') {
-                Swal.fire('Sukses', `Data disimpan`, 'success');
+                Swal.fire('Sukses', `Data berhasil disimpan untuk ${checkboxes.length} orang`, 'success');
                 document.querySelectorAll('#bulkUserList input').forEach(c => c.checked = false);
                 document.getElementById('bulkTaskDesc').value = '';
                 document.getElementById('bulkQty').value = '';
-                await loadData();
+                await refreshDataManual();
             }
         }
 
@@ -676,8 +875,9 @@
                     if(!stats[r.name]) stats[r.name] = { points: 0, items: 0, role: r.role, reports: [] };
                     stats[r.name].reports.push(r); 
                     if(r.status === 'approved') {
-                        stats[r.name].points += Number(r.total_points);
-                        stats[r.name].items += Number(r.qty);
+                        // FIX: GUNAKAN safeParseFloat saat menjumlahkan
+                        stats[r.name].points += safeParseFloat(r.total_points);
+                        stats[r.name].items += safeParseFloat(r.qty);
                     }
                 }
             });
@@ -685,19 +885,38 @@
             Object.entries(stats).forEach(([name, data]) => {
                 if(search && !name.toLowerCase().includes(search)) return;
                 const target = ROLES_CONFIG[data.role]?.targetMin || 1;
-                const color = data.points >= target ? 'bg-green-500' : 'bg-red-500';
+                const percentage = Math.min((data.points/target)*100, 100);
+                const isTargetReached = data.points >= target;
                 
+                // Visualisasi progress bar yang lebih menarik
+                let progressColor = 'bg-red-500';
+                if(percentage > 50) progressColor = 'bg-yellow-500';
+                if(isTargetReached) progressColor = 'bg-green-500';
+
                 list.innerHTML += `
-                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:bg-blue-50 transition"
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 cursor-pointer hover:shadow-md transition relative overflow-hidden"
                          onclick="openDetailModal('${name}', stats['${name}'].reports)">
-                        <div class="flex justify-between font-bold text-sm mb-2">
-                            <span>${name}</span>
-                            <span class="${data.points >= target ? 'text-green-600' : 'text-red-600'} text-lg">${data.points.toFixed(1)} Pts</span>
+                        
+                        <div class="flex justify-between items-end mb-2 relative z-10">
+                            <div>
+                                <h4 class="font-bold text-gray-800">${name}</h4>
+                                <span class="text-[10px] text-gray-400 uppercase tracking-wider">${data.role}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="block text-2xl font-black ${isTargetReached ? 'text-green-600' : 'text-gray-600'}">
+                                    ${data.points.toLocaleString('id-ID', { maximumFractionDigits: 1 })}
+                                </span>
+                                <span class="text-[9px] text-gray-400">/ Target ${target}</span>
+                            </div>
                         </div>
-                        <div class="w-full bg-gray-100 rounded-full h-2 mb-1"><div class="h-2 rounded-full ${color}" style="width: ${Math.min((data.points/target)*100, 100)}%"></div></div>
-                        <div class="flex justify-between items-center mt-2">
-                            <p class="text-xs text-gray-400">Total Output: ${data.items} unit</p>
-                            <span class="text-[10px] text-blue-500 font-bold bg-blue-100 px-2 rounded-full">Lihat Detail ></span>
+
+                        <div class="w-full bg-gray-100 rounded-full h-3 mb-2 relative overflow-hidden">
+                            <div class="h-full rounded-full ${progressColor} transition-all duration-1000" style="width: ${percentage}%"></div>
+                        </div>
+
+                        <div class="flex justify-between items-center text-xs mt-3 border-t pt-2 border-dashed">
+                            <span class="text-gray-500"><i class="fas fa-box-open mr-1"></i> ${data.items.toLocaleString('id-ID')} Item</span>
+                            <span class="text-blue-500 font-bold flex items-center hover:underline">Detail <i class="fas fa-arrow-right ml-1"></i></span>
                         </div>
                     </div>
                 `;
